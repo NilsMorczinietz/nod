@@ -1,6 +1,6 @@
 {
   "name": "@nod/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Nod CLI: Claude Code hooks bridge, pairing and device management",
   "private": true,
   "type": "module",

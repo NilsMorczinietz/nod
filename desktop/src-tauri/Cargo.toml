@@ -1,6 +1,6 @@
 [package]
 name = "nod-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Nod desktop companion: answer Claude Code from a Windows overlay"
 edition = "2024"
 license = "MIT"

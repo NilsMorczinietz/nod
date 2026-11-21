@@ -6,6 +6,21 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-21
+
+### Fixed
+
+- Android: push notifications never arrived when the app was closed. Firebase Messaging needed a
+  manifest flag, and pairing could drop the Firebase settings. Pair the phone again after updating.
+
+### Added
+
+- Android: Settings › Delivery checks everything Nod needs to reach you (notifications, lock
+  screen, battery, unused-app restrictions, push), with a button to the right system screen.
+- Android: a short delivery step after pairing, and an inbox banner while something important is
+  missing.
+- Android: opening a pairing link while already paired asks before switching relays.
+
 ## [0.1.0] - 2026-11-21
 
 First release.

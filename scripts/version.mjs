@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Sets one version across all components. Usage: npm run version:set -- 0.2.0
+import { spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -39,6 +40,9 @@ for (const path of [
 edit('desktop/src-tauri/Cargo.toml', (t) =>
   t.replace(/^version = "[^"]+"/m, `version = "${version}"`),
 )
+edit('desktop/src-tauri/Cargo.lock', (t) =>
+  t.replace(/(name = "nod-desktop"\nversion = ")[^"]+(")/, `$1${version}$2`),
+)
 edit('desktop/src-tauri/tauri.conf.json', (t) =>
   // Only touch a literal version; "../package.json" is already in sync.
   t.replace(/("version":\s*")(\d+\.\d+\.\d+)(")/, `$1${version}$3`),
@@ -47,6 +51,16 @@ edit('android/gradle.properties', (t) =>
   t
     .replace(/^nod\.versionName=.*$/m, `nod.versionName=${version}`)
     .replace(/^nod\.versionCode=.*$/m, `nod.versionCode=${versionCode}`),
+)
+
+// Keep the workspace versions in package-lock.json in sync (npm ci fails otherwise).
+const lock = spawnSync('npm', ['install', '--package-lock-only', '--ignore-scripts'], {
+  cwd: ROOT,
+  stdio: 'ignore',
+  shell: process.platform === 'win32',
+})
+console.log(
+  lock.status === 0 ? '✓ package-lock.json' : '! run `npm install` to update package-lock.json',
 )
 
 console.log(`
