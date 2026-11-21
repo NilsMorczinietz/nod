@@ -1,10 +1,6 @@
 package io.github.nilsmorczinietz.nod.ui
 
-import android.Manifest
-import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -16,13 +12,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +37,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.nilsmorczinietz.nod.DeepLinks
 import io.github.nilsmorczinietz.nod.R
 import io.github.nilsmorczinietz.nod.data.NodEvent
+import io.github.nilsmorczinietz.nod.data.PairingLink
 import io.github.nilsmorczinietz.nod.data.PairingState
+import io.github.nilsmorczinietz.nod.data.api.ApiException
+import io.github.nilsmorczinietz.nod.ui.delivery.DeliveryScreen
 import io.github.nilsmorczinietz.nod.ui.detail.DetailScreen
 import io.github.nilsmorczinietz.nod.ui.detail.DetailViewModel
 import io.github.nilsmorczinietz.nod.ui.inbox.InboxMessage
@@ -58,15 +60,20 @@ private sealed interface Route {
     data object Settings : Route
     data class Detail(val id: String) : Route
 
+    /** Delivery checklist; [onboarding] = the skippable step right after pairing. */
+    data class Delivery(val onboarding: Boolean) : Route
+
     companion object {
         fun encode(route: Route) = when (route) {
             Inbox -> "inbox"
             Settings -> "settings"
             is Detail -> "detail:${route.id}"
+            is Delivery -> if (route.onboarding) "delivery:onboarding" else "delivery"
         }
 
         fun decode(value: String): Route = when {
             value == "settings" -> Settings
+            value.startsWith("delivery") -> Delivery(onboarding = value == "delivery:onboarding")
             value.startsWith("detail:") -> Detail(value.removePrefix("detail:"))
             else -> Inbox
         }
@@ -116,12 +123,16 @@ fun NodRoot(deepLinks: DeepLinks) {
 
 @Composable
 private fun PairedContent(deepLinks: DeepLinks, showMessage: (String) -> Unit, deviceId: String) {
-    val stack = rememberSaveable(deviceId, saver = BackStackSaver) { mutableStateListOf<Route>(Route.Inbox) }
+    val deliveryPrefs = appContainer().deliveryPrefs
+    val stack = rememberSaveable(deviceId, saver = BackStackSaver) {
+        mutableStateListOf<Route>(Route.Inbox).apply {
+            // Right after pairing: one skippable step so requests can reach the lock screen.
+            if (!deliveryPrefs.isOnboarded(deviceId)) add(Route.Delivery(onboarding = true))
+        }
+    }
     var forward by remember { mutableStateOf(true) }
     val navigate: (Route) -> Unit = { forward = true; stack.add(it) }
     val back: () -> Unit = { if (stack.size > 1) { forward = false; stack.removeAt(stack.lastIndex) } }
-
-    RequestNotificationPermission()
 
     val openItem by deepLinks.itemId.collectAsStateWithLifecycle()
     LaunchedEffect(openItem) {
@@ -140,6 +151,8 @@ private fun PairedContent(deepLinks: DeepLinks, showMessage: (String) -> Unit, d
 
     BackHandler(enabled = stack.size > 1, onBack = back)
 
+    RepairDialog(deepLinks, showMessage)
+
     AnimatedContent(
         targetState = stack.last(),
         transitionSpec = {
@@ -153,11 +166,20 @@ private fun PairedContent(deepLinks: DeepLinks, showMessage: (String) -> Unit, d
             Route.Inbox -> {
                 val viewModel = nodViewModel { InboxViewModel(it.repository, it.updates) }
                 InboxMessages(viewModel, showMessage)
-                InboxScreen(viewModel, onOpenItem = { navigate(Route.Detail(it)) }, onOpenSettings = { navigate(Route.Settings) })
+                InboxScreen(
+                    viewModel,
+                    onOpenItem = { navigate(Route.Detail(it)) },
+                    onOpenSettings = { navigate(Route.Settings) },
+                    onFixDelivery = { navigate(Route.Delivery(onboarding = false)) },
+                )
             }
             Route.Settings -> {
-                val viewModel = nodViewModel { SettingsViewModel(it.repository, it.sessionStore, it.push, it.updates, it.appearance) }
+                val viewModel = nodViewModel { SettingsViewModel(it.repository, it.sessionStore, it.updates, it.appearance) }
                 SettingsScreen(viewModel, onBack = back, onMessage = showMessage)
+            }
+            is Route.Delivery -> DeliveryScreen(onboarding = route.onboarding) {
+                if (route.onboarding) deliveryPrefs.setOnboarded(deviceId)
+                back()
             }
             is Route.Detail -> {
                 val viewModel = nodViewModel(key = route.id) { DetailViewModel(it.repository, route.id) }
@@ -184,17 +206,53 @@ private fun InboxMessages(viewModel: InboxViewModel, showMessage: (String) -> Un
     }
 }
 
+/**
+ * A `nod://pair` link while already paired (e.g. after push was set up on the
+ * relay) pairs again, but only after the user confirms: a link from any app or
+ * website must not silently move this phone to another relay.
+ */
 @Composable
-private fun RequestNotificationPermission() {
-    if (Build.VERSION.SDK_INT < 33) return
-    var asked by rememberSaveable { mutableStateOf(false) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    val notifier = appContainer().notifier
-    LaunchedEffect(Unit) {
-        if (!asked && !notifier.canPost()) {
-            asked = true
-            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+private fun RepairDialog(deepLinks: DeepLinks, showMessage: (String) -> Unit) {
+    val container = appContainer()
+    val colors = NodTheme.colors
+    val raw by deepLinks.pairLink.collectAsStateWithLifecycle()
+    val link = raw?.let(PairingLink::parse)
+    val invalid = stringResource(R.string.pairing_error_link)
+    val paired = stringResource(R.string.repair_done)
+    val wrongCode = stringResource(R.string.pairing_error_code)
+    val network = stringResource(R.string.pairing_error_network)
+    LaunchedEffect(raw) {
+        if (raw != null && link == null) {
+            showMessage(invalid)
+            deepLinks.pairLink.value = null
         }
     }
+    link ?: return
+    val close = { deepLinks.pairLink.value = null }
+    AlertDialog(
+        onDismissRequest = close,
+        title = { Text(stringResource(R.string.repair_title)) },
+        text = { Text(stringResource(R.string.repair_body, link.host)) },
+        confirmButton = {
+            TextButton(onClick = {
+                close()
+                container.appScope.launch {
+                    val result = runCatching { container.repository.repair(link) }
+                    showMessage(
+                        when (val error = result.exceptionOrNull()) {
+                            null -> paired.format(link.host)
+                            is ApiException -> if (error.code == "invalid_pairing_code") wrongCode else network
+                            else -> network
+                        },
+                    )
+                }
+            }) { Text(stringResource(R.string.action_pair_again), color = colors.accentText) }
+        },
+        dismissButton = {
+            TextButton(onClick = close) { Text(stringResource(R.string.action_cancel), color = colors.foreground) }
+        },
+        containerColor = colors.popover,
+        titleContentColor = colors.foreground,
+        textContentColor = colors.mutedForeground,
+    )
 }
-

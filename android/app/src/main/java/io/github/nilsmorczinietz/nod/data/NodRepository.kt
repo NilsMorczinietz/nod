@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /** Whether the live WebSocket is up. */
 enum class ConnectionState { Offline, Connecting, Live }
@@ -84,8 +85,23 @@ class NodRepository(
         val name = "${Build.MANUFACTURER.replaceFirstChar(Char::titlecase)} ${Build.MODEL}".trim()
         val response = api.register(relay, RegisterDeviceInput(code = code.trim(), name = name))
         val newSession = Session(relay, response.device.id, response.device.name, response.token)
+        // Order matters: saving the session switches the UI to "paired", which
+        // cancels the pairing screen's scope this function runs in. Persist the
+        // Firebase config first (synchronous) and register the token in our own scope.
+        push.configure(response.firebase)
         sessionStore.save(newSession)
-        push.configure(response.firebase, newSession)
+        scope.launch { push.registerToken(newSession) }
+    }
+
+    /**
+     * Pairs again while paired (e.g. after push was set up on the relay, which
+     * only hands out its Firebase config at pairing). The old registration is
+     * removed from its relay afterwards, best effort.
+     */
+    suspend fun repair(link: PairingLink) {
+        val old = session
+        pair(link.relay, link.code)
+        if (old != null) runCatching { api.unpair(old.auth) }
     }
 
     suspend fun unpair() {

@@ -26,6 +26,7 @@ The version comes from `gradle.properties` (`nod.versionName`, `nod.versionCode`
 | Lock screen | Requests use a high-importance channel with public lock-screen visibility, so *Approve · Deny · Deny with note* work without unlocking (RemoteInput included). Settings → Approvals: "Show details on lock screen" (on by default; off hides the command but keeps the actions) and "Require unlock to approve" (off by default, Android 12+; *Deny* always works). |
 | Security | Release builds accept HTTPS only. Notification actions are handled by a non-exported receiver. |
 | Routing | Settings → "Where requests go": When I'm away · Every time · Updates only · Terminal. |
+| Delivery | Settings → Delivery checks, live on every resume: notifications allowed, the Requests channel (high importance, lock screen), lock-screen notifications, battery optimization, "Pause app activity if unused" and push (token registered with the relay). Each row opens the exact system screen. The same checklist runs once right after pairing (skippable), and the inbox shows a dismissible banner while a critical check fails. |
 | Design | `ui/theme` mirrors `design/tokens.json` (v4). Geist, Geist Mono and Geist Pixel are bundled (SIL OFL, see `third_party/geist`). Icons are generated from `design/mark.svg` by `scripts/generate_icons.py`. Fresh installs start in light mode. |
 | Bold text | Android's "Bold text" adds ~300 to every font weight, both when Compose picks a font and on the variable font's `wght` axis. `ui/theme/FontWeights.kt` cancels both, so Geist renders as designed. Settings → Appearance → "Use system bold text" turns the system behaviour back on. |
 
@@ -53,7 +54,9 @@ during pairing, and the app initialises Firebase at runtime.
    service-account key (Project settings → Service accounts).
 2. From the repo root: `npm run setup:push -- <google-services.json> <service-account.json>`.
    This stores everything as relay **secrets**; nothing goes into `wrangler.jsonc`.
-3. Pair the phone again. Settings → Push shows "Firebase connected".
+3. Pair the phone again: run `nod pair` and open the link (or scan the QR code with the camera). Nod
+   asks before it replaces the current pairing. Settings → Delivery → Push then shows "Firebase
+   connected". If registration fails, the row names the reason and offers *Retry*.
 
 ## Release signing
 

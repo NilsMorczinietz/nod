@@ -4,9 +4,11 @@ import android.content.Context
 import io.github.nilsmorczinietz.nod.data.NodRepository
 import io.github.nilsmorczinietz.nod.data.api.NodApi
 import io.github.nilsmorczinietz.nod.data.api.StreamClient
+import io.github.nilsmorczinietz.nod.data.delivery.DeliveryChecker
 import io.github.nilsmorczinietz.nod.data.update.UpdateChecker
 import io.github.nilsmorczinietz.nod.data.model.NodJson
 import io.github.nilsmorczinietz.nod.data.store.AppearancePrefs
+import io.github.nilsmorczinietz.nod.data.store.DeliveryPrefs
 import io.github.nilsmorczinietz.nod.data.store.FirebaseConfigStore
 import io.github.nilsmorczinietz.nod.data.store.SessionStore
 import io.github.nilsmorczinietz.nod.data.store.TokenCipher
@@ -33,9 +35,11 @@ class AppContainer(context: Context) {
     private val api = NodApi(http, NodJson)
     val sessionStore = SessionStore(context, TokenCipher())
     val appearance = AppearancePrefs(context)
+    val deliveryPrefs = DeliveryPrefs(context)
     val notifier = Notifier(context)
     val pushHandler = PushHandler(notifier, sessionStore)
     val push = PushRegistrar(context, FirebaseConfigStore(context), sessionStore, api)
+    val delivery = DeliveryChecker(context, push, appScope)
     val updates = UpdateChecker(context, http, NodJson, BuildConfig.VERSION_NAME, appScope)
     val repository = NodRepository(
         scope = appScope,

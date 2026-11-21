@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.nilsmorczinietz.nod.BuildConfig
 import io.github.nilsmorczinietz.nod.data.NodRepository
+import io.github.nilsmorczinietz.nod.data.PairingLink
 import io.github.nilsmorczinietz.nod.data.api.ApiException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,14 +33,12 @@ class PairingViewModel(private val repository: NodRepository) : ViewModel() {
 
     /** Handles `nod://pair?relay=…&code=…` from the QR scanner or a deep link; pairs right away. */
     fun onPairingLink(raw: String) {
-        val uri = runCatching { Uri.parse(raw) }.getOrNull()
-        val relay = uri?.takeIf { it.scheme == "nod" && it.host == "pair" }?.getQueryParameter("relay")
-        val code = uri?.getQueryParameter("code")
-        if (relay.isNullOrBlank() || code.isNullOrBlank()) {
+        val link = PairingLink.parse(raw)
+        if (link == null) {
             _state.update { it.copy(error = PairingError.InvalidLink) }
             return
         }
-        _state.update { it.copy(relayUrl = relay, code = code, error = null) }
+        _state.update { it.copy(relayUrl = link.relay, code = link.code, error = null) }
         pair()
     }
 

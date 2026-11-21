@@ -49,7 +49,7 @@ fun Eyebrow(text: String, modifier: Modifier = Modifier, inline: Boolean = false
     }
 }
 
-enum class BadgeTone { Approved, Denied, Waiting, Neutral }
+enum class BadgeTone { Approved, Denied, Waiting, Neutral, Success }
 
 /** Outcome label plus its badge tone. */
 data class ItemStatusLabel(val label: String, val tone: BadgeTone)
@@ -80,6 +80,7 @@ fun Badge(status: ItemStatusLabel, modifier: Modifier = Modifier) {
         BadgeTone.Denied -> colors.danger to colors.destructive.copy(alpha = if (colors.isDark) 0.20f else 0.10f)
         BadgeTone.Waiting -> colors.waitingText to colors.waiting.copy(alpha = 0.10f)
         BadgeTone.Neutral -> colors.mutedForeground to colors.muted
+        BadgeTone.Success -> colors.success to colors.success.copy(alpha = if (colors.isDark) 0.15f else 0.10f)
     }
     Row(
         modifier.background(bg, NodShapes.badge).padding(horizontal = 6.dp, vertical = 2.dp),

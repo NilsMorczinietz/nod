@@ -9,7 +9,6 @@ import io.github.nilsmorczinietz.nod.data.store.AppearancePrefs
 import io.github.nilsmorczinietz.nod.data.store.DEFAULT_THEME
 import io.github.nilsmorczinietz.nod.data.store.SessionStore
 import io.github.nilsmorczinietz.nod.data.store.ThemeMode
-import io.github.nilsmorczinietz.nod.push.PushRegistrar
 import io.github.nilsmorczinietz.nod.data.update.UpdateChecker
 import io.github.nilsmorczinietz.nod.data.update.UpdateState
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -28,13 +27,11 @@ data class SettingsUiState(
     val showOnLockScreen: Boolean = true,
     val themeMode: ThemeMode = DEFAULT_THEME,
     val useSystemBold: Boolean = false,
-    val pushAvailable: Boolean = false,
 )
 
 class SettingsViewModel(
     private val repository: NodRepository,
     private val sessionStore: SessionStore,
-    push: PushRegistrar,
     private val updates: UpdateChecker,
     private val appearance: AppearancePrefs,
 ) : ViewModel() {
@@ -64,7 +61,6 @@ class SettingsViewModel(
             themeMode = themeMode,
             useSystemBold = useSystemBold,
             showOnLockScreen = showOnLockScreen,
-            pushAvailable = push.isAvailable,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 

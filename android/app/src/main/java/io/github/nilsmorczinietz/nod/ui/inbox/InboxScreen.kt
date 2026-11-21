@@ -33,6 +33,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.nilsmorczinietz.nod.R
+import io.github.nilsmorczinietz.nod.ui.appContainer
+import io.github.nilsmorczinietz.nod.ui.delivery.DeliveryBanner
+import io.github.nilsmorczinietz.nod.ui.delivery.criticalProblems
+import io.github.nilsmorczinietz.nod.ui.delivery.rememberDeliveryStatuses
 import io.github.nilsmorczinietz.nod.data.ConnectionState
 import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
 import io.github.nilsmorczinietz.nod.ui.components.openUrl
@@ -57,8 +61,15 @@ fun InboxScreen(
     viewModel: InboxViewModel,
     onOpenItem: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onFixDelivery: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Critical delivery problems (notifications off, channel muted, hidden on the lock screen).
+    val deliveryPrefs = appContainer().deliveryPrefs
+    val deliveryProblems = rememberDeliveryStatuses().criticalProblems()
+    val problemSignature = deliveryProblems.joinToString(",")
+    val dismissedProblems by deliveryPrefs.dismissedBanner.collectAsStateWithLifecycle()
+    val showDeliveryBanner = deliveryProblems.isNotEmpty() && dismissedProblems != problemSignature
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val update by viewModel.update.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -73,6 +84,15 @@ fun InboxScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 40.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                if (showDeliveryBanner) {
+                    item(key = "delivery") {
+                        DeliveryBanner(
+                            onFix = onFixDelivery,
+                            onDismiss = { deliveryPrefs.dismissBanner(problemSignature) },
+                            modifier = Modifier.animateItem().padding(top = 8.dp),
+                        )
+                    }
+                }
                 item(key = "headline") {
                     Column(Modifier.padding(start = 4.dp, top = 20.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Eyebrow(stringResource(R.string.section_overview))

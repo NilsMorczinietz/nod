@@ -1,8 +1,6 @@
 package io.github.nilsmorczinietz.nod.ui.settings
 
-import android.content.Intent
 import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,17 +41,17 @@ import io.github.nilsmorczinietz.nod.data.store.ThemeMode
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.nilsmorczinietz.nod.BuildConfig
 import io.github.nilsmorczinietz.nod.R
-import io.github.nilsmorczinietz.nod.ui.appContainer
 import io.github.nilsmorczinietz.nod.ui.components.NodButton
 import io.github.nilsmorczinietz.nod.ui.components.NodButtonStyle
 import io.github.nilsmorczinietz.nod.ui.theme.NodTheme
 import io.github.nilsmorczinietz.nod.ui.theme.NodType
 import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
+import io.github.nilsmorczinietz.nod.ui.delivery.DeliveryChecklist
+import io.github.nilsmorczinietz.nod.ui.delivery.rememberDeliveryFix
+import io.github.nilsmorczinietz.nod.ui.delivery.rememberDeliveryStatuses
 import io.github.nilsmorczinietz.nod.ui.components.openUrl
 import io.github.nilsmorczinietz.nod.data.update.UpdateChecker
 import io.github.nilsmorczinietz.nod.data.update.UpdateState
@@ -76,11 +73,9 @@ fun SettingsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = NodTheme.colors
     val context = LocalContext.current
-    val notifier = appContainer().notifier
-    var notificationsEnabled by remember { mutableStateOf(notifier.canPost()) }
     var confirmUnpair by rememberSaveable { mutableStateOf(false) }
-    // Re-check when returning from the system settings.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { notificationsEnabled = notifier.canPost() }
+    val delivery = rememberDeliveryStatuses()
+    val fixDelivery = rememberDeliveryFix()
 
     val failed = stringResource(R.string.message_failed)
     LaunchedEffect(viewModel) { viewModel.errors.collect { onMessage(failed) } }
@@ -148,29 +143,7 @@ fun SettingsScreen(
 
             SectionHeader(stringResource(R.string.settings_section_delivery))
             Group {
-                InfoRow(
-                    stringResource(R.string.settings_notifications),
-                    stringResource(if (notificationsEnabled) R.string.settings_notifications_on else R.string.settings_notifications_off),
-                    valueColor = if (notificationsEnabled) colors.success else colors.waiting,
-                )
-                if (!notificationsEnabled) {
-                    NodButton(
-                        stringResource(R.string.action_open_settings),
-                        onClick = {
-                            context.startActivity(
-                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
-                            )
-                        },
-                        style = NodButtonStyle.Secondary,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                HorizontalDivider(color = colors.rule)
-                InfoRow(
-                    stringResource(R.string.settings_push),
-                    stringResource(if (state.pushAvailable) R.string.settings_push_on else R.string.settings_push_off),
-                    valueColor = if (state.pushAvailable) colors.success else colors.mutedForeground,
-                )
+                DeliveryChecklist(delivery, onFix = fixDelivery)
             }
 
             SectionHeader(stringResource(R.string.settings_section_device))
