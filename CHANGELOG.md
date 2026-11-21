@@ -6,14 +6,6 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
-### Added
-
-- `nod mcp`: MCP server with `request_approval`, `ask_human` and `notify`, so Cursor, Claude
-  Desktop, Codex and other MCP clients can ask through Nod.
-- `nod ask` and `nod notify` for scripts and CI (exit code 0 approved, 1 denied, 2 no answer).
-- Every request names its `agent`; the apps show it.
-- One-command setup (`npm run setup`, `npm run setup:push`), `nod update`, release pipeline.
-
 ## [0.1.0] - 2026-11-21
 
 First release.
@@ -24,9 +16,13 @@ First release.
   long-polling, hibernating WebSockets, FCM push, expiry and orphan clean-up.
 - Routing modes: When I'm away, Every time, Updates only, Terminal. Presence from the Windows
   app keeps the phone quiet while you're at your PC.
-- `nod` CLI: one-command setup, Claude Code hooks for permissions, questions, plans, completions
-  and failures, pairing via QR code, `nod update` with checksum verification.
+- `nod` CLI: Claude Code hooks for permissions, questions, plans, completions and failures,
+  pairing via QR code, `nod update` with checksum verification.
+- One-command setup (`npm run setup`) and push setup (`npm run setup:push`).
+- Other agents: `nod mcp` (MCP server with `request_approval`, `ask_human`, `notify`) and
+  `nod ask` / `nod notify` for scripts and CI. Every request names its agent.
 - Android app: inbox, decision ledger, lock-screen actions (Approve, Deny, Deny with note),
-  answers to questions from the notification, light and dark themes.
-- Windows app: a notch-style island at the top of the screen with keyboard shortcuts, an
-  overview and the main window; adjustable size and separate themes for app and notifications.
+  answers from the notification, light and dark themes, update check.
+- Windows app: a notch-style bar at the top of the screen with keyboard shortcuts, overview
+  and main window, adjustable size, separate themes for app and notifications, auto-updates.
+- Release pipeline with signed Android APK, Windows installer, checksums and build provenance.
