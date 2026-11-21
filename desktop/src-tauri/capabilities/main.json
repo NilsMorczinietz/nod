@@ -1,0 +1,20 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Main window: pairing, inbox and settings.",
+  "windows": ["main"],
+  "permissions": [
+    "core:event:default",
+    "allow-snapshot",
+    "allow-pair",
+    "allow-unpair",
+    "allow-resolve",
+    "allow-list-items",
+    "allow-set-paused",
+    "allow-set-mode",
+    "allow-check-update",
+    "allow-install-update",
+    "allow-open-release-notes",
+    "allow-set-prefs"
+  ]
+}

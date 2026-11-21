@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only helpers for screenshots; never part of release builds. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+
+    <application>
+        <!-- Only adb (shell holds DUMP) can call it. -->
+        <receiver
+            android:name=".debug.DebugWallpaperReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="io.github.nilsmorczinietz.nod.debug.WALLPAPER" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

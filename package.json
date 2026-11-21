@@ -1,0 +1,37 @@
+{
+  "name": "nod-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "relay",
+    "cli",
+    "desktop"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "oxlint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "e2e": "bash scripts/e2e.sh",
+    "setup": "node scripts/setup.mjs",
+    "setup:push": "node scripts/setup-push.mjs",
+    "version:set": "node scripts/version.mjs"
+  },
+  "devDependencies": {
+    "oxlint": "^1.94.0",
+    "prettier": "^3.10.1",
+    "prettier-plugin-svelte": "^4.2.0",
+    "typescript": "^6.0.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261119.1": true
+  }
+}

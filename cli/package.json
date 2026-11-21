@@ -1,0 +1,26 @@
+{
+  "name": "@nod/cli",
+  "version": "0.1.0",
+  "description": "Nod CLI: Claude Code hooks bridge, pairing and device management",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "nod": "./dist/nod.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p .",
+    "test": "node --test 'test/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@nod/protocol": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "qrcode": "^1.5.4"
+  }
+}

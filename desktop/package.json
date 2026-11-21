@@ -1,0 +1,29 @@
+{
+  "name": "@nod/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tokens": "node scripts/gen-tokens.mjs && prettier --write src/styles/tokens.css --log-level warn",
+    "dev": "npm run tokens && vite",
+    "build": "npm run tokens && vite build",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "tauri": "tauri",
+    "icons": "tauri icon ../design/logo.svg",
+    "build:windows": "bash scripts/build-windows.sh"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@nod/protocol": "*",
+    "@tauri-apps/api": "^2.12.5"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tauri-apps/cli": "^2.12.6",
+    "@tsconfig/svelte": "^5.0.9",
+    "svelte": "^5.59.1",
+    "svelte-check": "^4.4.0",
+    "vite": "^8.3.8"
+  }
+}

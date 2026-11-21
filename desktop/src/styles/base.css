@@ -1,0 +1,221 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+@import './tokens.css';
+
+/* Geist Pixel Square (SIL OFL 1.1, vendored from npm `geist` 1.9.2) – stat numbers only. */
+@font-face {
+  font-family: 'Geist Pixel Square';
+  src: url('../assets/fonts/GeistPixel-Square.woff2') format('woff2');
+  font-weight: 500;
+  font-display: block;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: var(--font-sans);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  color: var(--c-foreground);
+  background: var(--c-background);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+/* The overlay window is transparent; only the island paints. */
+html.overlay,
+html.overlay body {
+  background: transparent;
+  overflow: hidden;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+textarea,
+input {
+  user-select: text;
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-ring);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- type */
+
+.h2 {
+  margin: 0;
+  font-size: var(--type-h2-size-large);
+  font-weight: var(--type-h2-weight);
+  letter-spacing: var(--type-h2-tracking);
+  line-height: var(--type-h2-line);
+  text-wrap: balance;
+}
+
+.h3 {
+  margin: 0;
+  font-size: var(--type-h3-size-large);
+  font-weight: var(--type-h3-weight);
+  letter-spacing: var(--type-h3-tracking);
+  line-height: var(--type-h3-line);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--type-heading-size);
+  font-weight: var(--type-heading-weight);
+  letter-spacing: var(--type-heading-tracking);
+  line-height: var(--type-heading-line);
+}
+
+.body {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  color: var(--c-muted-foreground);
+}
+
+.small {
+  font-size: var(--type-small-size);
+  font-weight: var(--type-small-weight);
+  line-height: var(--type-small-line);
+}
+
+.xs {
+  font-size: var(--type-xs-size);
+  font-weight: var(--type-xs-weight);
+  line-height: var(--type-xs-line);
+  color: var(--c-muted-foreground);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--type-mono-size);
+  line-height: var(--type-mono-line);
+}
+
+.time {
+  font-family: var(--font-mono);
+  font-size: var(--type-mono-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat {
+  font-family: var(--font-pixel);
+  font-size: var(--type-stat-size);
+  font-weight: var(--type-stat-weight);
+  letter-spacing: var(--type-stat-tracking);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ------------------------------------------------------------- buttons */
+
+/* Secondary: card background, rule border, a tiny shadow. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--c-rule);
+  border-radius: var(--radius-md);
+  background: var(--c-card);
+  color: var(--c-foreground);
+  box-shadow: var(--shadow-button-secondary);
+  font-size: var(--type-small-size);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--motion-button-duration) var(--motion-button-easing),
+    box-shadow var(--motion-button-duration) var(--motion-button-easing);
+}
+
+.btn:hover {
+  background: var(--c-accent);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Primary: drop shadow plus an inset teal glow; pressed = inset dark. */
+.btn.primary {
+  border-color: color-mix(in srgb, var(--c-button-primary) 90%, transparent);
+  background: var(--c-button-primary);
+  color: var(--c-button-primary-foreground);
+  box-shadow: var(--shadow-button-primary);
+}
+
+.btn.primary:hover {
+  background: color-mix(in srgb, var(--c-button-primary) 85%, transparent);
+  box-shadow: var(--shadow-button-primary-hover);
+}
+
+.btn.primary:active {
+  box-shadow: var(--shadow-button-primary-active);
+}
+
+.btn.danger {
+  color: var(--c-danger);
+}
+
+.btn.text {
+  height: auto;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--c-muted-foreground);
+}
+
+.btn.text:hover {
+  color: var(--c-foreground);
+}
+
+kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* ------------------------------------------------------------- surfaces */
+
+/* Cards have no borders: an inset highlight and hairline shadows separate them. */
+.surface {
+  border-radius: var(--radius-xl);
+  background: var(--c-card);
+  box-shadow: var(--shadow-surface-sm);
+}
+
+.surface.raised {
+  box-shadow: var(--shadow-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

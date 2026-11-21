@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": { "correctness": "error", "suspicious": "warn" },
+  "rules": { "no-underscore-dangle": ["warn", { "allow": ["__NOD_VERSION__", "_meta"] }] },
+  "ignorePatterns": ["**/dist/**", "**/target/**", "**/.wrangler/**", "android/**"]
+}

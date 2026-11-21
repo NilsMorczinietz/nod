@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirror design/tokens.json v3 (light). Notification colour = primary. -->
+    <color name="nod_canvas">#F1F6F6</color>
+    <color name="nod_primary">#00595A</color>
+    <color name="nod_danger">#D40924</color>
+    <color name="nod_icon_background">#FFFFFF</color>
+    <color name="nod_icon_foreground">#007273</color>
+</resources>

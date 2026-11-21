@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nod</string>
+
+    <!-- Actions -->
+    <string name="action_always_allow">Approve and remember</string>
+    <string name="action_deny_with_note">Deny with note</string>
+    <string name="action_reject_with_note">Request changes</string>
+    <string name="note_hint_deny">Tell Claude why</string>
+    <string name="note_hint_plan">What should change?</string>
+    <string name="action_deny">Deny</string>
+    <string name="action_answer">Answer</string>
+    <string name="action_review_plan">Review plan</string>
+    <string name="action_approve">Approve</string>
+    <string name="action_skip">Skip</string>
+    <string name="action_send_answer">Send answer</string>
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_scan_qr">Scan QR code</string>
+    <string name="action_pair">Pair</string>
+    <string name="action_unpair">Unpair this device</string>
+    <string name="action_open_settings">Open notification settings</string>
+
+    <!-- Inbox -->
+    <plurals name="inbox_waiting">
+        <item quantity="one">%1$d waiting</item>
+        <item quantity="other">%1$d waiting</item>
+    </plurals>
+    <string name="inbox_try_it">To try it, run %1$s on your computer.</string>
+    <string name="connection_live">Live</string>
+    <string name="connection_connecting">Connecting</string>
+    <string name="connection_offline">Offline</string>
+    <string name="paused_body">Paused. Claude Code asks in the terminal.</string>
+
+    <!-- Status pills -->
+    <string name="status_waiting">Waiting</string>
+    <string name="status_approved">Approved</string>
+    <string name="status_denied">Denied</string>
+    <string name="status_answered">Answered</string>
+    <string name="status_expired">Expired</string>
+    <string name="status_withdrawn">Withdrawn</string>
+    <string name="status_done">Done</string>
+    <string name="status_failed">Failed</string>
+
+    <!-- Detail -->
+    <string name="question_multi_hint">Pick one or more</string>
+    <string name="detail_answered_on">Answered on %1$s</string>
+
+    <!-- Celebrations -->
+
+    <!-- Messages -->
+    <string name="message_already_answered">Already answered</string>
+    <string name="message_already_answered_by">Already answered on %1$s</string>
+    <string name="message_answered_elsewhere">Answered on %1$s</string>
+    <string name="message_failed">Couldn\'t reach the relay. Try again.</string>
+
+    <!-- Pairing -->
+    <string name="pairing_title">Pair this phone</string>
+    <string name="pairing_relay_url">Relay URL</string>
+    <string name="pairing_code">Pairing code</string>
+    <string name="pairing_error_link">That isn\'t a Nod pairing link. It starts with nod://pair?</string>
+    <string name="pairing_error_https">The relay URL must start with https://</string>
+    <string name="pairing_error_code">The code is wrong or has expired. Run nod pair again.</string>
+    <string name="pairing_error_network">Couldn\'t reach the relay. Check the URL and your connection.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_requests">Approvals</string>
+    <string name="settings_section_delivery">Delivery</string>
+    <string name="settings_section_device">This device</string>
+    <string name="settings_section_routing">Where requests go</string>
+    <string name="mode_away">When I\'m away</string>
+    <string name="mode_away_hint">Desktop always. This phone only when you\'re not at the computer.</string>
+    <string name="mode_always">Every time</string>
+    <string name="mode_always_hint">Desktop and phone at the same time.</string>
+    <string name="mode_updates">Updates only</string>
+    <string name="mode_updates_hint">Only done and failed. Claude Code asks in the terminal.</string>
+    <string name="mode_terminal">Terminal</string>
+    <string name="mode_terminal_hint">Nothing is sent. Claude Code asks in the terminal.</string>
+    <string name="settings_require_unlock">Require unlock to approve</string>
+    <string name="settings_require_unlock_hint">When on, Approve asks you to unlock first. Deny always works.</string>
+    <string name="settings_require_unlock_unsupported">Needs Android 12 or newer.</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_on">On</string>
+    <string name="settings_notifications_off">Off</string>
+    <string name="settings_push">Push</string>
+    <string name="settings_push_on">Firebase connected</string>
+    <string name="settings_push_off">Live only (no Firebase)</string>
+    <string name="settings_device">Device</string>
+    <string name="settings_relay">Relay</string>
+    <string name="settings_version">Version</string>
+    <string name="unpair_title">Unpair this device?</string>
+    <string name="unpair_body">It will stop receiving requests. You can pair again any time with nod pair.</string>
+
+    <!-- Notifications -->
+    <string name="channel_requests">Requests</string>
+    <string name="channel_requests_description">Permissions, questions and plans waiting for you</string>
+    <string name="channel_completed">Completed</string>
+    <string name="channel_completed_description">Claude finished a task</string>
+    <string name="channel_alerts">Alerts</string>
+    <string name="channel_alerts_description">Failures and Claude waiting for input</string>
+    <string name="public_permission">%1$s needs approval · %2$s</string>
+    <string name="public_question">%1$s has a question · %2$s</string>
+    <string name="public_plan">%1$s has a plan · %2$s</string>
+    <string name="public_completed">%1$s finished · %2$s</string>
+    <string name="public_failed">%1$s failed · %2$s</string>
+    <string name="public_attention">%1$s needs you · %2$s</string>
+    <string name="status_already_answered">Already answered</string>
+    <string name="status_answered_on">Answered on %1$s</string>
+    <string name="status_no_longer_pending">This request is no longer open.</string>
+    <string name="status_send_failed">Couldn\'t send your answer</string>
+    <string name="status_send_failed_hint">Tap to open Nod and try again.</string>
+    <string name="action_request_changes">Request changes</string>
+    <string name="action_send_changes">Send changes</string>
+    <string name="asker_line">%1$s · %2$s</string>
+    <string name="inbox_nothing_waiting">Nothing waiting.</string>
+    <string name="inbox_nothing_waiting_body">Claude Code asks here when it needs you.</string>
+    <string name="status_needs_you">Needs you</string>
+    <string name="notif_permission">%1$s needs you</string>
+    <string name="notif_question">%1$s has a question</string>
+    <string name="notif_plan">%1$s needs you</string>
+    <string name="notif_completed">%1$s finished</string>
+    <string name="notif_failed">%1$s failed</string>
+    <string name="notif_attention">%1$s needs you</string>
+    <string name="stat_approved_today">approved today</string>
+    <string name="stat_denied_today">denied today</string>
+    <string name="time_now">now</string>
+    <string name="section_overview">Overview</string>
+    <string name="group_waiting">Waiting for you</string>
+    <string name="group_working">Working</string>
+    <string name="ledger_title">Decision ledger</string>
+    <string name="ledger_today">%1$d today</string>
+    <string name="expires_in">expires in %1$s</string>
+    <string name="stat_projects_today">projects today</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="theme_system">System</string>
+    <string name="settings_system_bold">Use system bold text</string>
+    <string name="settings_system_bold_hint">Off keeps Nod\'s typography; turn on if you need heavier text.</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_updates">Updates</string>
+    <string name="settings_release_notes">Release notes</string>
+    <string name="settings_source_code">Source code</string>
+    <string name="update_available">Update %1$s available</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">You\'re up to date</string>
+    <string name="update_failed">Couldn\'t check for updates</string>
+    <string name="action_download">Download</string>
+    <string name="action_check_updates">Check for updates</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="pairing_eyebrow">Get started</string>
+    <!-- Text in `backticks` renders as an inline code chip. -->
+    <string name="pairing_step_run">Run `nod pair` on the computer with Claude Code.</string>
+    <string name="pairing_step_scan">Scan the QR code it shows, or paste the `nod://pair?…` link.</string>
+    <string name="pairing_step_notifications">Allow notifications so requests reach your lock screen.</string>
+    <string name="pairing_footnote">New to Nod?</string>
+    <string name="pairing_setup_guide">Read the setup guide</string>
+    <string name="pairing_link_placeholder" translatable="false">nod://pair?relay=…&amp;code=…</string>
+    <string name="pairing_relay_placeholder" translatable="false">https://nod-relay.example.workers.dev</string>
+    <string name="pairing_code_placeholder" translatable="false">K7QM-4XPA</string>
+    <string name="pairing_manual_hint">You can also enter the relay URL and code separately.</string>
+    <string name="settings_lockscreen_details">Show details on lock screen</string>
+    <string name="settings_lockscreen_details_hint">Shows the question and command. When off, the lock screen shows only the project and the buttons.</string>
+</resources>

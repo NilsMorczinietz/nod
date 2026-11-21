@@ -1,0 +1,39 @@
+# Dependencies & build output
+node_modules/
+dist/
+build/
+target/
+.wrangler/
+*.tsbuildinfo
+
+# Secrets & local config
+.env
+.env.*
+!.env.example
+.dev.vars
+*.keystore
+*.jks
+google-services.json
+firebase-service-account*.json
+local.properties
+
+# Private design references (not redistributable)
+design/style_references/
+
+# Editors / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+.DS_Store
+Thumbs.db
+
+# Android / Gradle
+.gradle/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Logs
+*.log

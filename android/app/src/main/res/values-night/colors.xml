@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirror design/tokens.json v3 (dark). -->
+    <color name="nod_canvas">#010707</color>
+    <color name="nod_primary">#00A4A4</color>
+    <color name="nod_danger">#FF837B</color>
+</resources>

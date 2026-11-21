@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nod-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "durable_objects": {
+    "bindings": [{ "name": "HUB", "class_name": "Hub" }],
+  },
+  // The free plan only supports SQLite-backed Durable Objects.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Hub"] }],
+  // Secrets (`wrangler secret put <NAME>`, locally in .dev.vars) – see docs/setup.md:
+  //   ADMIN_TOKEN                credential of the machines running Claude Code
+  //   FIREBASE_SERVICE_ACCOUNT   service-account JSON used to send FCM pushes
+  //   FIREBASE_APP_ID            Android app id (1:123:android:abc)  – public, but per user
+  //   FIREBASE_API_KEY           Android API key                     – public, but per user
+  //   FIREBASE_SENDER_ID         project number                      – public, but per user
+}

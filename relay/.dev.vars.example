@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `wrangler dev`. Never commit the real file.
+ADMIN_TOKEN=nod_adm_local_development_only
+# FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+# FIREBASE_APP_ID=1:123456789:android:abcdef
+# FIREBASE_API_KEY=AIza...
+# FIREBASE_SENDER_ID=123456789
