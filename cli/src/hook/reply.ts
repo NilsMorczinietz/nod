@@ -17,6 +17,16 @@ const ASKING_PHRASES = [
   /\b(do|would) you (want|like)\b/i,
   /\bwant me to\b/i,
   /\blet me know\b/i,
+  // Requests to reply ("…indem du mir hier „ja“ schreibst", "just reply …").
+  /\b(schreib|schreibe|antworte|sag)(st)? mir\b/i,
+  /\bdu mir\b.*\b(schreibst|sagst|antwortest|gibst)\b/i,
+  /\b(tell|reply to|write to) me\b/i,
+  /\bjust (say|reply|type|write)\b/i,
+  // Open offers and to-dos for the user.
+  /\b(wenn|falls) du (willst|möchtest|magst|es willst)\b/i,
+  /\bif you(?:'d| would)? (want|like|prefer)\b/i,
+  /\bnoch offen\b/i,
+  /\b(still )?(open|pending|left) for you\b/i,
 ]
 
 const stripMarkdown = (text: string): string =>

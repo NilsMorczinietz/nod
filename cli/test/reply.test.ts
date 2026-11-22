@@ -21,6 +21,22 @@ describe('pendingQuestion', () => {
     assert.ok(pendingQuestion('Done. Let me know if you want the dark theme too.'))
   })
 
+  it('detects requests to reply and open to-dos', () => {
+    const glib =
+      'Noch offen für dich: die GitHub-Sicherheitswarnung zu glib schließen, entweder selbst über den ' +
+      'Link von vorhin oder indem du mir hier „ja, schließen“ schreibst.'
+    assert.ok(pendingQuestion(`Release ist draußen.\n\n${glib}`))
+    assert.ok(pendingQuestion('Alles gepusht. Wenn du willst, lege ich noch den PR an.'))
+    assert.ok(pendingQuestion('Deployed. Just reply "go" and I will tag the release.'))
+    assert.ok(pendingQuestion('Done. If you want, I can also add the dark theme.'))
+  })
+
+  it('ignores status reports that only mention people or offers in passing', () => {
+    assert.equal(pendingQuestion('Ich melde mich, sobald der Build fertig ist.'), null)
+    assert.equal(pendingQuestion('Der Agent hat mir den Bericht geschickt. Alles grün.'), null)
+    assert.equal(pendingQuestion('The CLI now tells you which device answered.'), null)
+  })
+
   it('ignores questions that are not in the last paragraph', () => {
     assert.equal(
       pendingQuestion('Why did it fail? The cache was stale.\n\nFixed and verified.'),
