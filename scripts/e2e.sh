@@ -9,7 +9,8 @@ PORT=${PORT:-8799}
 R="http://127.0.0.1:$PORT"
 ADM=nod_adm_e2e_test_token
 TMP=$(mktemp -d)
-export XDG_CONFIG_HOME=$TMP/cfg XDG_STATE_HOME=$TMP/state XDG_DATA_HOME=$TMP/data CLAUDE_CONFIG_DIR=$TMP/claude
+# Isolate every location the CLI writes to, so the test never touches a real installation.
+export XDG_CONFIG_HOME=$TMP/cfg XDG_STATE_HOME=$TMP/state XDG_DATA_HOME=$TMP/data XDG_BIN_HOME=$TMP/bin CLAUDE_CONFIG_DIR=$TMP/claude
 NOD="node $ROOT/cli/dist/nod.mjs"
 
 # wrangler spawns workerd children: run it in its own process group and kill the whole group.

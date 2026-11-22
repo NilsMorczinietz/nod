@@ -104,7 +104,9 @@ export const install = async (): Promise<void> => {
  */
 const installShim = async (target: string): Promise<void> => {
   const windows = process.platform === 'win32'
-  const binDir = windows ? join(dataDir(), 'bin') : join(homedir(), '.local', 'bin')
+  const binDir = windows
+    ? join(dataDir(), 'bin')
+    : (process.env.XDG_BIN_HOME ?? join(homedir(), '.local', 'bin'))
   const shim = join(binDir, windows ? 'nod.cmd' : 'nod')
   await mkdir(binDir, { recursive: true })
   const content = windows
