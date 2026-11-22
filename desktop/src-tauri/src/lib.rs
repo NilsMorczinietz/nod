@@ -3,6 +3,7 @@
 mod commands;
 mod display;
 mod error;
+mod logger;
 mod main_window;
 mod overlay;
 mod presence;
@@ -29,6 +30,9 @@ const ARG_AUTOSTART: &str = "--autostart";
 const ARG_PAIR: &str = "--pair";
 
 pub fn run() {
+    // Before the single-instance plugin hands a second launch over to the
+    // running instance: pass our foreground right on, so it can come to the front.
+    main_window::allow_foreground_handoff();
     tauri::Builder::default()
         // Must be the first plugin: a second launch forwards its args here and exits.
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -64,6 +68,9 @@ pub fn run() {
             commands::set_mode,
             commands::set_shortcuts,
             commands::check_update,
+            commands::focus_island,
+            commands::release_focus,
+            commands::log_error,
             commands::install_update,
             commands::open_release_notes,
             commands::set_prefs,
@@ -75,6 +82,7 @@ pub fn run() {
 }
 
 fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    logger::init(app);
     let config_file = ConfigFile::new(&app.path().app_config_dir()?);
     let config = config_file.load();
     let prefs = config.prefs;
@@ -99,6 +107,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(state);
 
     tray::build(app)?;
+    overlay::init(app)?;
     commands::sync_autostart(app, prefs.autostart);
     relay::stream::spawn(app.clone(), receiver);
     updater::spawn(app.clone());
@@ -122,7 +131,11 @@ fn handle_args(app: &AppHandle, args: &[String]) -> bool {
         let app = app.clone();
         let link = link.clone();
         tauri::async_runtime::spawn(async move {
-            if session::pair(&app, &link, None).await.is_err() {
+            if let Err(error) = session::pair(&app, &link, None).await {
+                logger::write(
+                    "rust",
+                    &format!("pairing from the command line failed: {error}"),
+                );
                 main_window::show_main(&app);
             }
         });

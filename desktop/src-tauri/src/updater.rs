@@ -34,7 +34,9 @@ pub fn spawn(app: AppHandle) {
     }
     tauri::async_runtime::spawn(async move {
         loop {
-            let _ = check(&app).await;
+            if let Err(error) = check(&app).await {
+                crate::logger::write("rust", &format!("update check failed: {error}"));
+            }
             tokio::time::sleep(CHECK_EVERY).await;
         }
     });

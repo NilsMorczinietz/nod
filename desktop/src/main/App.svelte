@@ -5,6 +5,7 @@
   import Segmented from '../components/Segmented.svelte'
   import { events } from '../lib/api'
   import { HubStore } from '../lib/hub.svelte'
+  import { markReady, reportError } from '../lib/diagnostics'
   import { applyThemeClass } from '../lib/theme.svelte'
   import Inbox from './Inbox.svelte'
   import Pairing from './Pairing.svelte'
@@ -14,6 +15,10 @@
   const hub = new HubStore()
   let tab = $state<Tab>('inbox')
   let focusId = $state<string | null>(null)
+
+  $effect(() => {
+    if (hub.ready) markReady()
+  })
 
   $effect(() => applyThemeClass(hub.prefs.appTheme === 'system' ? null : hub.prefs.appTheme))
 
@@ -30,39 +35,48 @@
   })
 </script>
 
-<div class="canvas">
-  {#if hub.ready}
-    {#if !hub.paired}
-      <Pairing />
-    {:else}
-      <header>
-        <div class="brand"><Mark size={24} /><span>Nod</span></div>
-        <Segmented
-          label="Section"
-          value={tab}
-          options={[
-            {
-              value: 'inbox',
-              label: hub.pending.length ? `Inbox · ${hub.pending.length}` : 'Inbox',
-            },
-            { value: 'settings', label: 'Settings' },
-          ]}
-          onchange={(value: Tab) => (tab = value)}
-        />
-        <div class="status">
-          <ConnectionBadge status={hub.status} paused={hub.settings.paused} />
-        </div>
-      </header>
-      <main>
-        {#if tab === 'inbox'}
-          <Inbox {hub} bind:focusId />
-        {:else}
-          <Settings {hub} />
-        {/if}
-      </main>
+<svelte:boundary onerror={reportError}>
+  <div class="canvas">
+    {#if hub.ready}
+      {#if !hub.paired}
+        <Pairing />
+      {:else}
+        <header>
+          <div class="brand"><Mark size={24} /><span>Nod</span></div>
+          <Segmented
+            label="Section"
+            value={tab}
+            options={[
+              {
+                value: 'inbox',
+                label: hub.pending.length ? `Inbox · ${hub.pending.length}` : 'Inbox',
+              },
+              { value: 'settings', label: 'Settings' },
+            ]}
+            onchange={(value: Tab) => (tab = value)}
+          />
+          <div class="status">
+            <ConnectionBadge status={hub.status} paused={hub.settings.paused} />
+          </div>
+        </header>
+        <main>
+          {#if tab === 'inbox'}
+            <Inbox {hub} bind:focusId />
+          {:else}
+            <Settings {hub} />
+          {/if}
+        </main>
+      {/if}
     {/if}
-  {/if}
-</div>
+  </div>
+  {#snippet failed(_error, reset)}
+    <div class="failed">
+      <p class="body">Something went wrong.</p>
+      <button class="btn" onclick={() => location.reload()}>Reload</button>
+      <button class="btn text" onclick={reset}>Try again</button>
+    </div>
+  {/snippet}
+</svelte:boundary>
 
 <style>
   .canvas {
@@ -91,6 +105,14 @@
   }
   .status {
     justify-self: end;
+  }
+  .failed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 100vh;
   }
   main {
     overflow-y: auto;

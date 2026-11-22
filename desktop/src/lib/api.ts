@@ -30,6 +30,9 @@ export const api = {
   checkUpdate: () => invoke<UpdateInfo | null>('check_update'),
   installUpdate: () => invoke<void>('install_update'),
   openReleaseNotes: () => invoke<void>('open_release_notes'),
+  focusIsland: () => invoke<void>('focus_island'),
+  logError: (message: string) => invoke<void>('log_error', { message }),
+  releaseFocus: () => invoke<void>('release_focus'),
 }
 
 export const events = {

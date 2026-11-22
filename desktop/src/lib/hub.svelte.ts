@@ -38,14 +38,32 @@ export class HubStore {
   #handlers = new Set<MessageHandler>()
   #unlisten: UnlistenFn[] = []
 
+  /**
+   * Subscribes and loads the first snapshot. The webview can start before the
+   * backend is ready, so failures are retried instead of leaving a blank window.
+   */
   async start(): Promise<void> {
-    this.#unlisten = await Promise.all([
-      events.snapshot((s) => this.#applySnapshot(s)),
-      events.status((s) => (this.status = s)),
-      events.message((m) => this.#applyMessage(m)),
-    ])
-    this.#applySnapshot(await api.snapshot())
-    this.ready = true
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if (this.#unlisten.length === 0) {
+          this.#unlisten = await Promise.all([
+            events.snapshot((s) => this.#applySnapshot(s)),
+            events.status((s) => (this.status = s)),
+            events.message((m) => this.#applyMessage(m)),
+          ])
+        }
+        this.#applySnapshot(await api.snapshot())
+        this.ready = true
+        return
+      } catch (error) {
+        if (attempt === 0 || attempt % 10 === 9) {
+          void api
+            .logError(`startup attempt ${attempt + 1} failed: ${String(error)}`)
+            .catch(() => {})
+        }
+        await new Promise((resolve) => setTimeout(resolve, Math.min(2000, 100 * 2 ** attempt)))
+      }
+    }
   }
 
   stop(): void {

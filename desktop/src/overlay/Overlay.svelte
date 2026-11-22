@@ -29,11 +29,12 @@
   import Segmented from '../components/Segmented.svelte'
   import { api, events } from '../lib/api'
   import { clock } from '../lib/clock.svelte'
+  import { markReady } from '../lib/diagnostics'
   import { HubStore } from '../lib/hub.svelte'
   import { MODES } from '../lib/modes'
   import { ISLAND_MOTION, fade } from '../lib/motion'
   import { chime } from '../lib/sound'
-  import { agentName, relativeTime, statusOf } from '../lib/status'
+  import { agentName, isOpenQuestion, relativeTime, statusOf } from '../lib/status'
   import { applyThemeClass, resolveIsland } from '../lib/theme.svelte'
   import { Tween } from '../lib/tween.svelte'
 
@@ -358,7 +359,10 @@
       }
     })
     const unlisten = [events.shortcut(onShortcut), events.overview(() => void openOverview(true))]
-    void hub.start().then(() => hub.pending.forEach(upsertRequest))
+    void hub.start().then(() => {
+      markReady()
+      hub.pending.forEach(upsertRequest)
+    })
     return () => {
       stop()
       hub.stop()
@@ -432,7 +436,12 @@
               <span class="bar-status">
                 {#if pending}
                   <span class="dot"></span>
-                  <span>Needs you{requests.length > 1 ? ` · ${requests.length}` : ''}</span>
+                  <span>
+                    {isOpenQuestion(shown.item) ? 'Waiting for you' : 'Needs you'}{requests.length >
+                    1
+                      ? ` · ${requests.length}`
+                      : ''}
+                  </span>
                 {:else}
                   <span class="check" class:bad={status.variant === 'denied'}>
                     <Glyph

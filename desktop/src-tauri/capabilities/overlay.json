@@ -10,6 +10,9 @@
     "allow-list-items",
     "allow-set-mode",
     "allow-set-shortcuts",
+    "allow-focus-island",
+    "allow-release-focus",
+    "allow-log-error",
     "allow-overlay-layout",
     "allow-open-main"
   ]

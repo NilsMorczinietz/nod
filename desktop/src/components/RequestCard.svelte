@@ -49,7 +49,11 @@
     questions.length > 0 && questions.every((q) => (selections[q.question]?.length ?? 0) > 0),
   )
   const permission = $derived(item.permission)
-  const summary = $derived(permission?.summary ?? item.body ?? '')
+  /** A question Claude asked in prose: Yes / No, or a free-text reply. */
+  const replyQuestion = $derived(
+    questions.length === 1 && questions[0]!.allowText ? questions[0]! : null,
+  )
+  const summary = $derived(replyQuestion ? '' : (permission?.summary ?? item.body ?? ''))
   /** The command (or diff) as code; in the island only behind "Show details". */
   const code = $derived.by(() => {
     if (!permission) return null
@@ -97,13 +101,54 @@
     }
   }
 
+  let reply = $state('')
+  let expanded = $state(false)
+  let replyInput: HTMLInputElement | undefined = $state()
+  /** Long questions are clamped to four lines until "Show more". */
+  const longQuestion = $derived((replyQuestion?.question.length ?? 0) > 200)
+
+  const choose = (label: string | undefined) => {
+    if (replyQuestion && label) {
+      void send({ decision: 'answer', answers: { [replyQuestion.question]: [label] } })
+    }
+  }
+
+  const sendReply = async () => {
+    const message = reply.trim()
+    if (!message) return
+    await send({ decision: 'answer', answers: {}, message })
+    if (island) void api.releaseFocus()
+  }
+
+  /** The island never takes focus on its own; only a click into the field does. */
+  const focusReply = async () => {
+    if (!island) return
+    await api.focusIsland().catch(() => undefined)
+    replyInput?.focus()
+  }
+
+  const onReplyKey = (event: KeyboardEvent) => {
+    event.stopPropagation()
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      void sendReply()
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      replyInput?.blur()
+      if (island) void api.releaseFocus()
+    }
+  }
+
   export const approve = () => {
-    if (item.kind !== 'question') void send({ decision: 'allow' })
+    if (replyQuestion) choose(replyQuestion.options[0]?.label)
+    else if (item.kind !== 'question') void send({ decision: 'allow' })
     else if (canSend) void send({ decision: 'answer', answers: $state.snapshot(selections) })
   }
 
-  export const deny = () =>
-    void send({ decision: 'deny', ...(reason.trim() ? { message: reason.trim() } : {}) })
+  export const deny = () => {
+    if (replyQuestion) choose(replyQuestion.options[1]?.label)
+    else void send({ decision: 'deny', ...(reason.trim() ? { message: reason.trim() } : {}) })
+  }
 
   const onkeydown = (event: KeyboardEvent) => {
     if (event.target instanceof HTMLTextAreaElement) {
@@ -135,10 +180,23 @@
     <Badge label="Needs you" variant={island ? 'neutral' : 'waiting'} />
   </header>
 
-  <div class="ask">
-    <h3 class="question">{item.title}</h3>
-    {#if detail}<p class="detail">{detail}</p>{/if}
-  </div>
+  {#if replyQuestion}
+    <div class="ask">
+      <p class="question prose" class:clamped={longQuestion && !expanded}>
+        {replyQuestion.question}
+      </p>
+      {#if longQuestion}
+        <button class="btn text more" onclick={() => (expanded = !expanded)}>
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      {/if}
+    </div>
+  {:else}
+    <div class="ask">
+      <h3 class="question">{item.title}</h3>
+      {#if detail}<p class="detail">{detail}</p>{/if}
+    </div>
+  {/if}
 
   {#if code}
     {#if island}
@@ -156,7 +214,7 @@
     {/if}
   {/if}
 
-  {#if item.kind === 'question'}
+  {#if item.kind === 'question' && !replyQuestion}
     {#each questions as q (q.question)}
       <div class="options" role="group" aria-label={q.question}>
         {#each q.options as option (option.label)}
@@ -190,20 +248,48 @@
 
   {#if error}<p class="error xs">{error}</p>{/if}
 
-  <div class="actions">
-    <button class="btn" disabled={busy} onclick={deny}>
-      {reasoning ? 'Send reason' : labels.deny}
-      {#if island}<kbd>Ctrl+Shift+N</kbd>{/if}
-    </button>
-    <button
-      class="btn primary"
-      disabled={busy || (item.kind === 'question' && !canSend)}
-      onclick={approve}
+  {#if replyQuestion}
+    <div class="actions">
+      {#each replyQuestion.options.slice(0, 2) as option, i (option.label)}
+        <button class="btn" disabled={busy} onclick={() => choose(option.label)}>
+          {option.label}
+          {#if island}<kbd>{i === 0 ? 'Ctrl+Shift+Y' : 'Ctrl+Shift+N'}</kbd>{/if}
+        </button>
+      {/each}
+    </div>
+    <form
+      class="reply"
+      onsubmit={(event) => {
+        event.preventDefault()
+        void sendReply()
+      }}
     >
-      {labels.approve}
-      {#if island}<kbd>Ctrl+Shift+Y</kbd>{/if}
-    </button>
-  </div>
+      <input
+        bind:this={replyInput}
+        bind:value={reply}
+        placeholder="Reply…"
+        aria-label="Reply to {agentName(item)}"
+        onpointerdown={focusReply}
+        onkeydown={onReplyKey}
+      />
+      <button class="btn primary" disabled={busy || !reply.trim()}>Send</button>
+    </form>
+  {:else}
+    <div class="actions">
+      <button class="btn" disabled={busy} onclick={deny}>
+        {reasoning ? 'Send reason' : labels.deny}
+        {#if island}<kbd>Ctrl+Shift+N</kbd>{/if}
+      </button>
+      <button
+        class="btn primary"
+        disabled={busy || (item.kind === 'question' && !canSend)}
+        onclick={approve}
+      >
+        {labels.approve}
+        {#if island}<kbd>Ctrl+Shift+Y</kbd>{/if}
+      </button>
+    </div>
+  {/if}
 
   <div class="links">
     {#if labels.reason && !reasoning}
@@ -470,5 +556,49 @@
   .error {
     margin: 0;
     color: var(--c-danger);
+  }
+
+  /* ------------------------------------------------- free-text reply */
+  .prose {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .prose.clamped {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .more {
+    justify-self: start;
+    margin-top: 2px;
+    font-size: 12px;
+  }
+  .reply {
+    display: flex;
+    gap: 8px;
+  }
+  .reply input {
+    flex: 1;
+    min-width: 0;
+    padding: 0 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--c-rule);
+    background: var(--c-input);
+    color: var(--c-foreground);
+    outline: none;
+  }
+  .reply input:focus {
+    border-color: var(--c-ring);
+  }
+  .island .reply input,
+  .island .reply .btn {
+    height: 30px;
+    font-size: 13px;
+  }
+  .full .reply input,
+  .full .reply .btn {
+    height: 40px;
   }
 </style>

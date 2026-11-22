@@ -92,6 +92,24 @@ pub fn open_release_notes() -> Result<()> {
     updater::open_release_notes()
 }
 
+/// Frontend errors end up in the diagnostic log (see logger.rs).
+#[tauri::command]
+pub fn log_error(window: tauri::WebviewWindow, message: String) {
+    crate::logger::write(window.label(), &message);
+}
+
+/// The user clicked into the island's reply field.
+#[tauri::command]
+pub fn focus_island(app: AppHandle) -> Result<()> {
+    overlay::take_focus(&app)
+}
+
+/// Reply sent or cancelled: give focus back to the previous window.
+#[tauri::command]
+pub fn release_focus() {
+    overlay::release_focus();
+}
+
 /// The overlay turns the global shortcuts on while it shows a request.
 #[tauri::command]
 pub fn set_shortcuts(app: AppHandle, active: bool) -> Result<()> {

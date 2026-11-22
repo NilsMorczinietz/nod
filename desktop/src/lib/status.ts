@@ -42,10 +42,24 @@ export const statusOf = (item: Item): Status => {
     case 'resolved':
       if (r?.decision === 'answer') return { label: 'Answered', ...APPROVED }
       if (r?.decision === 'deny') {
+        if (isOpenQuestion(item)) return { label: 'Dismissed', ...NEUTRAL }
         return { label: item.kind === 'plan' ? 'Rejected' : 'Denied', ...DENIED }
       }
       return { label: 'Approved', ...APPROVED }
   }
+}
+
+/** True for questions Claude asked in prose (Yes / No or a free-text reply). */
+export const isOpenQuestion = (item: Item): boolean =>
+  item.kind === 'question' && item.questions?.length === 1 && item.questions[0]!.allowText === true
+
+/** What the user answered: the typed reply, or the chosen option(s). */
+export const answerOf = (item: Item): string | null => {
+  const r = item.resolution
+  if (!r || r.decision !== 'answer') return null
+  if (r.message) return r.message
+  const labels = Object.values(r.answers ?? {}).flat()
+  return labels.length > 0 ? labels.join(', ') : null
 }
 
 /** Display name of the asking agent; sessions without one come from Claude Code. */

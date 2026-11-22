@@ -90,15 +90,75 @@ pub fn layout(app: &AppHandle, width: f64, height: f64) -> Result<()> {
     Ok(())
 }
 
+/// Makes clicks on the overlay never activate it (buttons work without focus).
+pub fn init(app: &AppHandle) -> Result<()> {
+    match window(app) {
+        Some(window) => platform::make_non_activating(&window),
+        None => Ok(()),
+    }
+}
+
+/// Gives the island keyboard focus (the user clicked into the reply field),
+/// remembering which window had it.
+pub fn take_focus(app: &AppHandle) -> Result<()> {
+    match window(app) {
+        Some(window) => platform::take_focus(&window),
+        None => Ok(()),
+    }
+}
+
+/// Hands keyboard focus back to the window that had it before.
+pub fn release_focus() {
+    platform::release_focus();
+}
+
 #[cfg(windows)]
 mod platform {
+    use std::sync::Mutex;
+
     use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
+    use windows::Win32::Foundation::HWND;
     use windows::Win32::UI::WindowsAndMessaging::{
-        HWND_TOPMOST, IsWindowVisible, SET_WINDOW_POS_FLAGS, SW_HIDE, SWP_NOACTIVATE,
-        SWP_SHOWWINDOW, SetWindowPos, ShowWindow,
+        GWL_EXSTYLE, GetForegroundWindow, GetWindowLongPtrW, HWND_TOPMOST, IsWindowVisible,
+        SET_WINDOW_POS_FLAGS, SW_HIDE, SWP_NOACTIVATE, SWP_SHOWWINDOW, SetForegroundWindow,
+        SetWindowLongPtrW, SetWindowPos, ShowWindow, WS_EX_NOACTIVATE,
     };
 
     use crate::error::Result;
+
+    /// The window that had focus before the island took it (as a raw handle).
+    static PREVIOUS: Mutex<Option<isize>> = Mutex::new(None);
+
+    pub fn make_non_activating(window: &WebviewWindow) -> Result<()> {
+        let hwnd = window.hwnd()?;
+        // SAFETY: plain style bit update on our own window.
+        unsafe {
+            let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style | WS_EX_NOACTIVATE.0 as isize);
+        }
+        Ok(())
+    }
+
+    pub fn take_focus(window: &WebviewWindow) -> Result<()> {
+        let own = window.hwnd()?;
+        // SAFETY: querying the foreground window has no preconditions.
+        let previous = unsafe { GetForegroundWindow() };
+        if previous != own && !previous.is_invalid() {
+            *PREVIOUS.lock().expect("focus lock") = Some(previous.0 as isize);
+        }
+        // Allowed: the click that triggers this was the last input event.
+        window.set_focus()?;
+        Ok(())
+    }
+
+    pub fn release_focus() {
+        if let Some(previous) = PREVIOUS.lock().expect("focus lock").take() {
+            // SAFETY: a stale handle just makes the call fail.
+            unsafe {
+                let _ = SetForegroundWindow(HWND(previous as *mut _));
+            }
+        }
+    }
 
     pub fn is_visible(window: &WebviewWindow) -> bool {
         window
@@ -147,6 +207,16 @@ mod platform {
     use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
 
     use crate::error::Result;
+
+    pub fn make_non_activating(_window: &WebviewWindow) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn take_focus(window: &WebviewWindow) -> Result<()> {
+        Ok(window.set_focus()?)
+    }
+
+    pub fn release_focus() {}
 
     pub fn is_visible(window: &WebviewWindow) -> bool {
         window.is_visible().unwrap_or(false)

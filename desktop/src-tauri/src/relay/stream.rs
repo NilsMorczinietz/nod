@@ -56,6 +56,7 @@ pub fn spawn(app: AppHandle, mut credentials: watch::Receiver<Option<Credentials
             };
 
             if let Ended::Revoked = ended {
+                crate::logger::write("rust", "device token rejected by the relay; unpairing");
                 let _ = session::forget(&app, false).await;
                 continue;
             }

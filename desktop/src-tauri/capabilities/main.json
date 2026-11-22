@@ -12,6 +12,7 @@
     "allow-list-items",
     "allow-set-paused",
     "allow-set-mode",
+    "allow-log-error",
     "allow-check-update",
     "allow-install-update",
     "allow-open-release-notes",

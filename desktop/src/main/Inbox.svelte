@@ -13,7 +13,7 @@
   import { clock } from '../lib/clock.svelte'
   import type { HubStore } from '../lib/hub.svelte'
   import { rise } from '../lib/motion'
-  import { agentName, relativeTime, statusOf } from '../lib/status'
+  import { agentName, answerOf, isOpenQuestion, relativeTime, statusOf } from '../lib/status'
   import ItemDetail from './ItemDetail.svelte'
 
   let { hub, focusId = $bindable() }: { hub: HubStore; focusId: string | null } = $props()
@@ -140,6 +140,8 @@
             <button class="row" onclick={() => (focusId = item.id)}>
               {#if item.permission}
                 <span class="what mono">{item.permission.summary}</span>
+              {:else if isOpenQuestion(item) && answerOf(item)}
+                <span class="what" title={item.questions?.[0]?.question}>“{answerOf(item)}”</span>
               {:else}
                 <span class="what">{item.title}</span>
               {/if}

@@ -6,7 +6,7 @@
   import Badge from '../components/Badge.svelte'
   import RequestCard from '../components/RequestCard.svelte'
   import { clockTime, dayLabel } from '../lib/format'
-  import { statusOf } from '../lib/status'
+  import { answerOf, statusOf } from '../lib/status'
 
   let { item, onclose }: { item: Item; onclose: () => void } = $props()
   const status = $derived(statusOf(item))
@@ -42,7 +42,7 @@
       {#each item.questions as q (q.question)}
         <div class="qa">
           <p class="xs">{q.question}</p>
-          <p class="answer">{item.resolution?.answers?.[q.question]?.join(', ') ?? 'No answer'}</p>
+          <p class="answer">{answerOf(item) ?? 'No answer'}</p>
         </div>
       {/each}
     {/if}
