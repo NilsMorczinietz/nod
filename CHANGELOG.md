@@ -6,6 +6,21 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-22
+
+### Changed
+
+- Windows installer in the Nod style: teal sidebar and header with the pixel mark, the logo as
+  installer icon, clearer texts and "Start Nod" pre-checked on the finish page.
+- Replies now also catch requests to answer and open offers without a question mark
+  ("…write me „yes“", "if you want, I can …", "still open for you").
+
+### Fixed
+
+- Windows lists the real publisher instead of "github" under installed apps.
+- The end-to-end test no longer overwrites the user's `nod` command (the shim directory honours
+  `XDG_BIN_HOME`).
+
 ## [0.2.0] - 2026-11-22
 
 ### Added
