@@ -25,9 +25,12 @@ jobs:
           workspaces: desktop/src-tauri
           save-if: false
       - run: npm ci
-      - name: Build the installer (unsigned updater artifacts are skipped)
+      # Separate name and identifier: installing the preview never touches a real Nod install.
+      - name: Build the preview installer
         working-directory: desktop
-        run: npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'
+        run: >-
+          npx tauri build --bundles nsis --config
+          '{"productName":"Nod Preview","identifier":"io.github.nilsmorczinietz.nod.preview","bundle":{"createUpdaterArtifacts":false}}'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nod-installer-preview
