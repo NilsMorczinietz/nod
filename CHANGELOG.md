@@ -6,6 +6,28 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-22
+
+### Added
+
+- Replies to prose questions: when Claude ends a turn with a question in plain text, it arrives on
+  your devices with Yes, No and a free-text reply. Your answer continues the session; typing in the
+  terminal withdraws the question. The terminal is never blocked (background Stop hook with
+  `asyncRewake`). Turn off with `notify.replies` in the config.
+- Android: in-app updates. The app downloads the new APK, verifies it against the release
+  checksums and opens the system installer.
+- Windows: a log file for diagnosing problems
+  (`%LOCALAPPDATA%\io.github.nilsmorczinietz.nod\logs\nod.log`).
+
+### Fixed
+
+- Windows: the main window could open behind other windows or stay blank after an update restart
+  or autostart. It now comes to the front reliably, retries its first load and shows
+  "Something went wrong · Reload" instead of a blank page.
+- Windows: only one instance can run, also across an update restart and copies in other folders.
+- Android: the update banner moved to the top of the inbox.
+- Android: after an app update, an already used pairing link no longer asks to pair again.
+
 ## [0.1.1] - 2026-11-21
 
 ### Fixed
