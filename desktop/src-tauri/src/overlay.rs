@@ -4,6 +4,9 @@
 //! 0 hides the window. The window is anchored according to the user's
 //! position preference. On Windows it is shown without activation, so the
 //! overlay never steals focus from the editor or terminal.
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
+
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 use crate::error::Result;
@@ -13,6 +16,11 @@ use crate::store::OverlayPosition;
 pub const LABEL: &str = "overlay";
 /// Asks the overlay to open the recent-activity overview.
 pub const EVENT_OVERVIEW: &str = "nod://overview";
+/// A revealed window the frontend doesn't claim within this time is hidden again.
+const REVEAL_TIMEOUT: Duration = Duration::from_secs(3);
+
+/// Counts layout requests from the frontend (see `reveal`).
+static LAYOUTS: AtomicU64 = AtomicU64::new(0);
 
 fn window(app: &AppHandle) -> Option<WebviewWindow> {
     app.get_webview_window(LABEL)
@@ -49,18 +57,42 @@ fn frame(
     )))
 }
 
-/// Shows the overlay (if hidden) so the frontend can render and measure new content.
+/// Shows the overlay (if hidden) so the frontend can render and measure new
+/// content; WebView2 doesn't render a hidden window.
+///
+/// The transparent window catches clicks even where nothing is drawn, so if the
+/// frontend doesn't lay it out soon (still loading, or nothing to show), it is
+/// hidden again instead of sitting invisibly over the top of the screen.
 pub fn reveal(app: &AppHandle) {
-    if let Some(window) = window(app)
-        && !platform::is_visible(&window)
-    {
-        let scale = window.scale_factor().unwrap_or(1.0);
-        let (width, height) = window
-            .inner_size()
-            .map(|s| (s.width as f64 / scale, s.height as f64 / scale))
-            .unwrap_or((480.0, 120.0));
-        let _ = layout(app, width, height.max(1.0));
+    let Some(window) = window(app) else { return };
+    if platform::is_visible(&window) {
+        return;
     }
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let (width, height) = window
+        .inner_size()
+        .map(|s| (s.width as f64 / scale, s.height as f64 / scale))
+        .unwrap_or((480.0, 120.0));
+    let seen = LAYOUTS.load(Ordering::SeqCst);
+    if place(app, width, height.max(1.0)).is_err() {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(REVEAL_TIMEOUT).await;
+        if LAYOUTS.load(Ordering::SeqCst) != seen {
+            return;
+        }
+        let main = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            // Re-check on the UI thread: a layout may have arrived meanwhile.
+            if LAYOUTS.load(Ordering::SeqCst) == seen
+                && let Some(window) = main.get_webview_window(LABEL)
+            {
+                let _ = platform::hide(&window);
+            }
+        });
+    });
 }
 
 /// Opens the overview in the island (from the tray).
@@ -69,12 +101,18 @@ pub fn show_overview(app: &AppHandle) {
     let _ = app.emit_to(LABEL, EVENT_OVERVIEW, ());
 }
 
-/// Resizes and anchors the overlay; a height below 1 hides it.
+/// Resizes and anchors the overlay on the frontend's request; a height below 1
+/// hides it.
 pub fn layout(app: &AppHandle, width: f64, height: f64) -> Result<()> {
+    LAYOUTS.fetch_add(1, Ordering::SeqCst);
+    place(app, width, height)
+}
+
+fn place(app: &AppHandle, width: f64, height: f64) -> Result<()> {
     let Some(window) = window(app) else {
         return Ok(());
     };
-    if height < 1.0 || width < 1.0 {
+    if !width.is_finite() || !height.is_finite() || height < 1.0 || width < 1.0 {
         return platform::hide(&window);
     }
     let position = app
@@ -84,10 +122,18 @@ pub fn layout(app: &AppHandle, width: f64, height: f64) -> Result<()> {
         .expect("config lock")
         .prefs
         .position;
-    if let Some((origin, size)) = frame(&window, position, width, height)? {
-        platform::show_at(&window, origin, size)?;
+    let Some((origin, size)) = frame(&window, position, width, height)? else {
+        return Ok(());
+    };
+    // Every move/resize/show makes WebView2 and the GPU driver rebuild the
+    // transparent surface; skip calls that would change nothing.
+    if platform::is_visible(&window)
+        && window.outer_position().ok() == Some(origin)
+        && window.outer_size().ok() == Some(size)
+    {
+        return Ok(());
     }
-    Ok(())
+    platform::show_at(&window, origin, size)
 }
 
 /// Makes clicks on the overlay never activate it (buttons work without focus).
@@ -194,6 +240,9 @@ mod platform {
     }
 
     pub fn hide(window: &WebviewWindow) -> Result<()> {
+        if !is_visible(window) {
+            return Ok(());
+        }
         let hwnd = window.hwnd()?;
         unsafe {
             let _ = ShowWindow(hwnd, SW_HIDE);

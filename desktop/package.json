@@ -9,7 +9,7 @@
     "build": "npm run tokens && vite build",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "tauri": "tauri",
-    "icons": "tauri icon ../design/logo.svg",
+    "icons": "tauri icon ../design/logo-desktop.svg",
     "build:windows": "bash scripts/build-windows.sh"
   },
   "dependencies": {

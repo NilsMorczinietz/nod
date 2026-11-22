@@ -2,7 +2,7 @@
 
 The mark is a "head" (disc) above an arc – the moment of a nod – rasterised onto
 a square grid of rounded pixels. Run:  python3 design/scripts/generate-logo.py
-Outputs (next to this script's parent): logo.svg, mark.svg, mark-mono.svg.
+Outputs (next to this script's parent): logo.svg, logo-desktop.svg, mark.svg, mark-mono.svg.
 """
 from __future__ import annotations
 
@@ -67,6 +67,16 @@ def main() -> None:
         f'  <g>\n    {pixels(mark, (512 - mark) / 2, TEAL)}\n  </g>'
     )
     (out / "logo.svg").write_text(svg(512, logo, "Nod app icon: teal pixel mark on white."))
+    # Desktop app icon (exe, tray, taskbar): white mark on transparent, no tile.
+    # Without a tile the mark fills ~90 % of the canvas so it reads at 16 px.
+    span = 512 * 0.9 * GRID / 9  # the bitmap leaves one empty cell on each side
+    (out / "logo-desktop.svg").write_text(
+        svg(
+            512,
+            f"<g>\n    {pixels(span, (512 - span) / 2, WHITE)}\n  </g>",
+            "Nod desktop icon: white pixel mark on transparent.",
+        )
+    )
     # Mark only (teal), for in-app use on light surfaces.
     (out / "mark.svg").write_text(svg(24, f"<g>\n    {pixels(24, 0, TEAL)}\n  </g>", "Nod mark, teal."))
     # Monochrome mark (currentColor) for notification small icons, tray, island.

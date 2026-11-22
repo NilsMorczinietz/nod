@@ -182,16 +182,21 @@
   }
 
   /** `fromTray`: opened without the pointer, so close it if it never gets visited. */
+  let overviewLoad = 0
   const openOverview = async (fromTray = false) => {
     overview = true
     clearTimeout(overviewTimer)
     if (fromTray) overviewTimer = later(4000, closeOverview)
+    // Only the newest request may fill the list (the tray and the bar can race).
+    const load = ++overviewLoad
     recent = null
+    let items: Item[] = []
     try {
-      recent = await api.listItems(40)
+      items = await api.listItems(40)
     } catch {
-      recent = []
+      // An empty list says "Nothing yet"; the next open tries again.
     }
+    if (load === overviewLoad) recent = items
   }
 
   /** Latest item per session, newest first. */
@@ -244,7 +249,10 @@
     if (Math.abs(h - reported) < 0.5) return
     reported = h
     const width = Math.ceil((CARD_WIDTH + SIDE_PAD * 2) * zoom)
-    void api.overlayLayout(h > 0 ? width : 0, h)
+    void api.overlayLayout(h > 0 ? width : 0, h).catch(() => {
+      // The window kept its old frame: forget it so the next report retries.
+      if (reported === h) reported = -1
+    })
   }
   /** Window height in logical px for an island of `h` CSS px. */
   const windowHeight = (h: number) => Math.ceil(((corner ? CORNER_GAP : 0) + h + SHADOW_PAD) * zoom)
@@ -263,11 +271,15 @@
   }
 
   const target = (w: number, h: number) => {
+    // The content of a view on its way out still reports sizes (e.g. the list
+    // finishing to load). That must never reopen the island: it would come back
+    // with nothing left to close it.
+    if (!view) return
     if (!showing) {
       showing = true
-      // Appear out of the screen edge: full width, no height yet.
-      visibleW.set(w, { instant: true })
-      visibleH.set(0, { instant: true })
+      // Appear out of the screen edge: full width, no height yet. A retract
+      // still in progress simply turns around instead of jumping to zero.
+      if (visibleH.current === 0) visibleW.set(w, { instant: true })
     }
     boxW = Math.max(boxW, w)
     if (h >= boxH) {
