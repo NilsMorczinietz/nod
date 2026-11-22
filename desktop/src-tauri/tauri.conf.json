@@ -51,6 +51,7 @@
       "nsis"
     ],
     "category": "DeveloperTool",
+    "publisher": "Nils Morczinietz",
     "shortDescription": "Answer Claude Code from your desktop",
     "icon": [
       "icons/32x32.png",
