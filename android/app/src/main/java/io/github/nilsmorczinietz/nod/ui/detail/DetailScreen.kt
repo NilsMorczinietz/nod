@@ -50,17 +50,20 @@ import io.github.nilsmorczinietz.nod.data.model.Item
 import io.github.nilsmorczinietz.nod.data.model.ItemKind
 import io.github.nilsmorczinietz.nod.data.model.ItemStatus
 import io.github.nilsmorczinietz.nod.data.model.Question
+import io.github.nilsmorczinietz.nod.ui.components.Badge
 import io.github.nilsmorczinietz.nod.ui.components.ClockTime
 import io.github.nilsmorczinietz.nod.ui.components.CodeBlock
 import io.github.nilsmorczinietz.nod.ui.components.ExpiryText
+import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
 import io.github.nilsmorczinietz.nod.ui.components.NodButton
 import io.github.nilsmorczinietz.nod.ui.components.NodButtonStyle
+import io.github.nilsmorczinietz.nod.ui.components.ReplyComposer
 import io.github.nilsmorczinietz.nod.ui.components.Skeleton
-import io.github.nilsmorczinietz.nod.ui.components.Badge
-import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
-import io.github.nilsmorczinietz.nod.ui.components.surfaceSm
 import io.github.nilsmorczinietz.nod.ui.components.askerLine
+import io.github.nilsmorczinietz.nod.ui.components.replyQuestion
+import io.github.nilsmorczinietz.nod.ui.components.replyText
 import io.github.nilsmorczinietz.nod.ui.components.statusOf
+import io.github.nilsmorczinietz.nod.ui.components.surfaceSm
 import io.github.nilsmorczinietz.nod.ui.theme.NodMotion
 import io.github.nilsmorczinietz.nod.ui.theme.NodShapes
 import io.github.nilsmorczinietz.nod.ui.theme.NodTheme
@@ -117,7 +120,8 @@ fun DetailScreen(
             Spacer(Modifier.height(12.dp))
             Text("${askerLine(current)} · ${current.session.host}", style = NodType.meta, color = colors.mutedForeground)
             Spacer(Modifier.height(10.dp))
-            Text(current.title, style = NodType.h2, color = colors.foreground)
+            val reply = current.replyQuestion
+            Text(reply?.question ?: current.title, style = NodType.h2, color = colors.foreground)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ClockTime(current.createdAt)
@@ -136,6 +140,14 @@ fun DetailScreen(
                     Eyebrow(permission.tool)
                     Spacer(Modifier.height(10.dp))
                     CodeBlock(permission.detail ?: permission.summary)
+                }
+                // The question is the heading; options and the reply field sit in the action bar.
+                ItemKind.Question if reply != null -> current.replyText?.let { answered ->
+                    Text(
+                        if (current.resolution?.message != null) stringResource(R.string.ledger_replied, answered) else answered,
+                        style = NodType.body,
+                        color = colors.foreground,
+                    )
                 }
                 ItemKind.Question -> Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                     current.questions.orEmpty().forEachIndexed { index, question ->
@@ -238,6 +250,7 @@ private fun ActionBar(
     val colors = NodTheme.colors
     var noteOpen by rememberSaveable(item.id) { mutableStateOf(false) }
     var note by rememberSaveable(item.id) { mutableStateOf("") }
+    val reply = item.replyQuestion
 
     Column(Modifier.fillMaxWidth().background(colors.background)) {
         HorizontalDivider(thickness = 1.dp, color = colors.rule)
@@ -298,6 +311,19 @@ private fun ActionBar(
                                 }
                             }
                         }
+                    }
+                }
+                ItemKind.Question if reply != null -> {
+                    ReplyComposer(
+                        reply,
+                        enabled = !busy,
+                        onOption = viewModel::answerOption,
+                        onReply = viewModel::reply,
+                        height = 44.dp,
+                    )
+                    // Nothing to answer: closes the question in the terminal, like swiping it away on the desktop.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        NodButton(stringResource(R.string.action_dismiss), { viewModel.deny() }, style = NodButtonStyle.Text, enabled = !busy)
                     }
                 }
                 ItemKind.Question -> {

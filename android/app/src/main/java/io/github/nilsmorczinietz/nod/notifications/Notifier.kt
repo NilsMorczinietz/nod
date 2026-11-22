@@ -36,7 +36,12 @@ data class PushItem(
     val agent: String,
     val expiresAt: Long,
     val options: List<String>,
+    /** "1" in the payload: the question also takes a free-text reply. */
+    val allowText: Boolean = false,
 ) {
+    /** Claude ended its turn with a question in prose: options plus a free-text reply. */
+    val isReply: Boolean get() = kind == ItemKind.Question && allowText
+
     companion object {
         fun from(data: Map<String, String>): PushItem? {
             val id = data["id"] ?: return null
@@ -53,6 +58,7 @@ data class PushItem(
                 agent = agentOrDefault(data["agent"]),
                 expiresAt = data["expiresAt"]?.toLongOrNull() ?: 0L,
                 options = options.take(3),
+                allowText = data["allowText"] == "1",
             )
         }
     }
@@ -125,9 +131,17 @@ class Notifier(private val context: Context) {
             resolveAction(item.id, ResolveIntent.DENY, context.getString(R.string.action_deny), requireUnlock = false),
             noteAction(item.id, ResolveIntent.DENY, context.getString(R.string.action_deny_with_note), context.getString(R.string.note_hint_deny)),
         )
-        ItemKind.Question -> item.options.mapIndexed { index, label ->
+        // Reply questions: two options plus "Reply" (free text) fill Android's three actions,
+        // so there is no Deny; swiping the notification away leaves the question open.
+        ItemKind.Question -> item.options.take(if (item.allowText) 2 else 3).mapIndexed { index, label ->
             resolveAction(item.id, ResolveIntent.ANSWER, label, requireUnlock, answerIndex = index)
-        }
+        } + listOfNotNull(
+            if (item.allowText) {
+                noteAction(item.id, ResolveIntent.ANSWER, context.getString(R.string.action_reply), context.getString(R.string.note_hint_reply))
+            } else {
+                null
+            },
+        )
         ItemKind.Plan -> listOf(
             resolveAction(item.id, ResolveIntent.ALLOW, context.getString(R.string.action_approve), requireUnlock),
             noteAction(item.id, ResolveIntent.DENY, context.getString(R.string.action_reject_with_note), context.getString(R.string.note_hint_plan)),
@@ -182,7 +196,7 @@ class Notifier(private val context: Context) {
         return NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_nod)
             .setColor(color)
-            .setContentTitle(context.getString(titleFor(item.kind), item.agent))
+            .setContentTitle(context.getString(if (item.isReply) R.string.notif_waiting else titleFor(item.kind), item.agent))
             .setContentText(text)
             .setSubText(item.project)
             .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))

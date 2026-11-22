@@ -1,13 +1,17 @@
 package io.github.nilsmorczinietz.nod.ui.settings
 
 import android.os.Build
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -32,37 +36,39 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.nilsmorczinietz.nod.data.model.RoutingMode
-import io.github.nilsmorczinietz.nod.data.store.ThemeMode
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.nilsmorczinietz.nod.BuildConfig
 import io.github.nilsmorczinietz.nod.R
+import io.github.nilsmorczinietz.nod.data.model.RoutingMode
+import io.github.nilsmorczinietz.nod.data.store.ThemeMode
+import io.github.nilsmorczinietz.nod.data.update.InstallState
+import io.github.nilsmorczinietz.nod.data.update.UpdateChecker
+import io.github.nilsmorczinietz.nod.data.update.UpdateState
+import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
 import io.github.nilsmorczinietz.nod.ui.components.NodButton
 import io.github.nilsmorczinietz.nod.ui.components.NodButtonStyle
-import io.github.nilsmorczinietz.nod.ui.theme.NodTheme
-import io.github.nilsmorczinietz.nod.ui.theme.NodType
-import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
+import io.github.nilsmorczinietz.nod.ui.components.UpdateAction
+import io.github.nilsmorczinietz.nod.ui.components.UpdateProgress
+import io.github.nilsmorczinietz.nod.ui.components.openUrl
+import io.github.nilsmorczinietz.nod.ui.components.rememberUpdateInstaller
+import io.github.nilsmorczinietz.nod.ui.components.surfaceSm
+import io.github.nilsmorczinietz.nod.ui.components.updateStatus
 import io.github.nilsmorczinietz.nod.ui.delivery.DeliveryChecklist
 import io.github.nilsmorczinietz.nod.ui.delivery.rememberDeliveryFix
 import io.github.nilsmorczinietz.nod.ui.delivery.rememberDeliveryStatuses
-import io.github.nilsmorczinietz.nod.ui.components.openUrl
-import io.github.nilsmorczinietz.nod.data.update.UpdateChecker
-import io.github.nilsmorczinietz.nod.data.update.UpdateState
-import androidx.compose.foundation.clickable
-import io.github.nilsmorczinietz.nod.ui.components.surfaceSm
 import io.github.nilsmorczinietz.nod.ui.theme.NodShapes
-import androidx.compose.foundation.background
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import io.github.nilsmorczinietz.nod.ui.theme.NodTheme
+import io.github.nilsmorczinietz.nod.ui.theme.NodType
 
 @Composable
 fun SettingsScreen(
@@ -202,28 +208,43 @@ fun SettingsScreen(
 @Composable
 private fun UpdateRow(state: UpdateState, onCheck: () -> Unit, onOpen: (String) -> Unit) {
     val colors = NodTheme.colors
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(stringResource(R.string.settings_updates), style = NodType.small, color = colors.foreground)
-            val status = when (state) {
-                is UpdateState.Available -> stringResource(R.string.update_available, state.info.version)
-                UpdateState.Checking -> stringResource(R.string.update_checking)
-                UpdateState.UpToDate -> stringResource(R.string.update_up_to_date)
-                UpdateState.Failed -> stringResource(R.string.update_failed)
-                UpdateState.Unknown -> null
+    val installer = rememberUpdateInstaller()
+    val install by installer.state.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                Text(stringResource(R.string.settings_updates), style = NodType.small, color = colors.foreground)
+                val status = when (state) {
+                    is UpdateState.Available -> updateStatus(state.info, install)
+                    UpdateState.Checking -> stringResource(R.string.update_checking)
+                    UpdateState.UpToDate -> stringResource(R.string.update_up_to_date)
+                    UpdateState.Failed -> stringResource(R.string.update_failed)
+                    UpdateState.Unknown -> null
+                }
+                status?.let { Text(it, style = NodType.meta, color = colors.mutedForeground) }
+                // Fallback for when the in-app install isn't possible or wanted.
+                if (state is UpdateState.Available && state.info.canInstallInApp && (install == InstallState.Idle || install is InstallState.Failed)) {
+                    Text(
+                        stringResource(R.string.action_open_in_browser),
+                        style = NodType.meta,
+                        color = colors.mutedForeground,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.padding(top = 2.dp).clickable { onOpen(state.info.downloadUrl) },
+                    )
+                }
             }
-            status?.let { Text(it, style = NodType.meta, color = colors.mutedForeground) }
+            if (state is UpdateState.Available) {
+                UpdateAction(state.info, install, installer, onBrowser = { onOpen(state.info.downloadUrl) })
+            } else {
+                NodButton(
+                    stringResource(R.string.action_check_updates),
+                    onCheck,
+                    style = NodButtonStyle.Text,
+                    enabled = state != UpdateState.Checking,
+                )
+            }
         }
-        if (state is UpdateState.Available) {
-            NodButton(stringResource(R.string.action_download), { onOpen(state.info.downloadUrl) }, style = NodButtonStyle.Text)
-        } else {
-            NodButton(
-                stringResource(R.string.action_check_updates),
-                onCheck,
-                style = NodButtonStyle.Text,
-                enabled = state != UpdateState.Checking,
-            )
-        }
+        if (state is UpdateState.Available) UpdateProgress(install, Modifier.padding(top = 8.dp, bottom = 4.dp))
     }
 }
 

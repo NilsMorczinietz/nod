@@ -6,12 +6,14 @@ import io.github.nilsmorczinietz.nod.data.api.NodApi
 import io.github.nilsmorczinietz.nod.data.api.StreamClient
 import io.github.nilsmorczinietz.nod.data.delivery.DeliveryChecker
 import io.github.nilsmorczinietz.nod.data.update.UpdateChecker
+import io.github.nilsmorczinietz.nod.data.update.UpdateInstaller
 import io.github.nilsmorczinietz.nod.data.model.NodJson
 import io.github.nilsmorczinietz.nod.data.store.AppearancePrefs
 import io.github.nilsmorczinietz.nod.data.store.DeliveryPrefs
 import io.github.nilsmorczinietz.nod.data.store.FirebaseConfigStore
 import io.github.nilsmorczinietz.nod.data.store.SessionStore
 import io.github.nilsmorczinietz.nod.data.store.TokenCipher
+import io.github.nilsmorczinietz.nod.data.store.UsedPairingCodes
 import io.github.nilsmorczinietz.nod.notifications.Notifier
 import io.github.nilsmorczinietz.nod.push.PushHandler
 import io.github.nilsmorczinietz.nod.push.PushRegistrar
@@ -36,11 +38,13 @@ class AppContainer(context: Context) {
     val sessionStore = SessionStore(context, TokenCipher())
     val appearance = AppearancePrefs(context)
     val deliveryPrefs = DeliveryPrefs(context)
+    val usedPairingCodes = UsedPairingCodes(context)
     val notifier = Notifier(context)
     val pushHandler = PushHandler(notifier, sessionStore)
     val push = PushRegistrar(context, FirebaseConfigStore(context), sessionStore, api)
     val delivery = DeliveryChecker(context, push, appScope)
     val updates = UpdateChecker(context, http, NodJson, BuildConfig.VERSION_NAME, appScope)
+    val updateInstaller = UpdateInstaller(context, http, appScope)
     val repository = NodRepository(
         scope = appScope,
         api = api,
@@ -48,5 +52,6 @@ class AppContainer(context: Context) {
         sessionStore = sessionStore,
         push = push,
         notifier = notifier,
+        usedCodes = usedPairingCodes,
     )
 }

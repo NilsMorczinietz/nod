@@ -7,12 +7,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,7 +22,6 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -45,7 +40,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalContext
@@ -71,9 +65,9 @@ import io.github.nilsmorczinietz.nod.R
 import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
 import io.github.nilsmorczinietz.nod.ui.components.NodButton
 import io.github.nilsmorczinietz.nod.ui.components.NodMark
+import io.github.nilsmorczinietz.nod.ui.components.NodTextField
 import io.github.nilsmorczinietz.nod.ui.components.openUrl
 import io.github.nilsmorczinietz.nod.ui.theme.NodMotion
-import io.github.nilsmorczinietz.nod.ui.theme.NodShapes
 import io.github.nilsmorczinietz.nod.ui.theme.NodTheme
 import io.github.nilsmorczinietz.nod.ui.theme.NodType
 
@@ -263,52 +257,6 @@ private fun DrawScope.drawChip(layout: TextLayoutResult, start: Int, end: Int, c
         val center = (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f
         drawRoundRect(color, topLeft = Offset(left, center - height / 2f), size = Size(right - left, height), cornerRadius = radius)
     }
-}
-
-/** Desktop-style input: radius 8, primary-tinted 1 dp border, mono text and placeholder. */
-@Composable
-private fun NodTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    modifier: Modifier = Modifier,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
-    contentDescription: String? = null,
-    trailing: (@Composable () -> Unit)? = null,
-) {
-    val colors = NodTheme.colors
-    val interaction = remember { MutableInteractionSource() }
-    val focused by interaction.collectIsFocusedAsState()
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        textStyle = NodType.code.copy(color = colors.foreground),
-        cursorBrush = SolidColor(colors.primary),
-        keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions,
-        interactionSource = interaction,
-        modifier = modifier
-            .height(48.dp)
-            .then(if (contentDescription != null) Modifier.semantics { this.contentDescription = contentDescription } else Modifier),
-        decorationBox = { field ->
-            Row(
-                Modifier
-                    .fillMaxSize()
-                    .background(colors.input, NodShapes.md)
-                    .border(1.dp, colors.primary.copy(alpha = if (focused) 0.9f else 0.45f), NodShapes.md)
-                    .padding(start = 14.dp, end = if (trailing == null) 14.dp else 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (value.isEmpty()) Text(placeholder, style = NodType.code, color = colors.mutedForeground.copy(alpha = 0.7f), maxLines = 1)
-                    field()
-                }
-                trailing?.invoke()
-            }
-        },
-    )
 }
 
 /** Relay URL and code as separate fields, for when only the parts are at hand. */

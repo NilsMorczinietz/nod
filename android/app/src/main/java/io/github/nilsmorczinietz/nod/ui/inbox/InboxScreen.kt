@@ -33,16 +33,12 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.nilsmorczinietz.nod.R
-import io.github.nilsmorczinietz.nod.ui.appContainer
-import io.github.nilsmorczinietz.nod.ui.delivery.DeliveryBanner
-import io.github.nilsmorczinietz.nod.ui.delivery.criticalProblems
-import io.github.nilsmorczinietz.nod.ui.delivery.rememberDeliveryStatuses
 import io.github.nilsmorczinietz.nod.data.ConnectionState
-import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
-import io.github.nilsmorczinietz.nod.ui.components.openUrl
+import io.github.nilsmorczinietz.nod.data.update.UpdateInfo
+import io.github.nilsmorczinietz.nod.ui.appContainer
 import io.github.nilsmorczinietz.nod.ui.components.BoardGroup
 import io.github.nilsmorczinietz.nod.ui.components.DecisionLedger
-import io.github.nilsmorczinietz.nod.ui.components.WorkingCard
+import io.github.nilsmorczinietz.nod.ui.components.Eyebrow
 import io.github.nilsmorczinietz.nod.ui.components.LiveDot
 import io.github.nilsmorczinietz.nod.ui.components.NodButton
 import io.github.nilsmorczinietz.nod.ui.components.NodButtonStyle
@@ -50,7 +46,16 @@ import io.github.nilsmorczinietz.nod.ui.components.NodMark
 import io.github.nilsmorczinietz.nod.ui.components.RequestCard
 import io.github.nilsmorczinietz.nod.ui.components.Stat
 import io.github.nilsmorczinietz.nod.ui.components.StatRow
+import io.github.nilsmorczinietz.nod.ui.components.UpdateAction
+import io.github.nilsmorczinietz.nod.ui.components.UpdateProgress
+import io.github.nilsmorczinietz.nod.ui.components.WorkingCard
+import io.github.nilsmorczinietz.nod.ui.components.openUrl
+import io.github.nilsmorczinietz.nod.ui.components.rememberUpdateInstaller
 import io.github.nilsmorczinietz.nod.ui.components.surfaceSm
+import io.github.nilsmorczinietz.nod.ui.components.updateStatus
+import io.github.nilsmorczinietz.nod.ui.delivery.DeliveryBanner
+import io.github.nilsmorczinietz.nod.ui.delivery.criticalProblems
+import io.github.nilsmorczinietz.nod.ui.delivery.rememberDeliveryStatuses
 import io.github.nilsmorczinietz.nod.ui.theme.NodShapes
 import io.github.nilsmorczinietz.nod.ui.theme.NodTheme
 import io.github.nilsmorczinietz.nod.ui.theme.NodType
@@ -116,6 +121,16 @@ fun InboxScreen(
                         ),
                     )
                 }
+                // Below the overview, above the board; the delivery banner (top) wins if both show.
+                update?.let { info ->
+                    item(key = "update") {
+                        UpdateBanner(
+                            info = info,
+                            onDismiss = { viewModel.dismissUpdate(info.version) },
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                }
                 if (state.paused) {
                     item(key = "paused") { PausedNotice(onResume = viewModel::resume, modifier = Modifier.animateItem()) }
                 }
@@ -129,6 +144,7 @@ fun InboxScreen(
                                         resolving = state.resolving[item.id],
                                         onOpen = { onOpenItem(item.id) },
                                         onQuickDecision = { decision -> viewModel.quickResolve(item, decision) },
+                                        onResolve = { input -> viewModel.resolve(item, input) },
                                     )
                                 }
                             }
@@ -145,16 +161,6 @@ fun InboxScreen(
                 if (state.history.isNotEmpty()) {
                     item(key = "ledger") {
                         DecisionLedger(state.history, state.decisionsToday, onOpen = { onOpenItem(it.id) }, modifier = Modifier.animateItem())
-                    }
-                }
-                update?.let { info ->
-                    item(key = "update") {
-                        UpdateBanner(
-                            version = info.version,
-                            onDownload = { context.openUrl(info.downloadUrl) },
-                            onDismiss = { viewModel.dismissUpdate(info.version) },
-                            modifier = Modifier.animateItem(),
-                        )
                     }
                 }
                 if (state.history.isEmpty() && state.pending.isEmpty()) {
@@ -217,19 +223,22 @@ private fun TryIt(modifier: Modifier = Modifier) {
     )
 }
 
-/** Quiet, dismissible hint that a newer APK is on GitHub. */
+/** Quiet, dismissible hint that a newer release is out; installs it in place. */
 @Composable
-private fun UpdateBanner(version: String, onDownload: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+private fun UpdateBanner(info: UpdateInfo, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     val colors = NodTheme.colors
-    Row(
-        modifier.fillMaxWidth().surfaceSm().padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(stringResource(R.string.update_available, version), style = NodType.small, color = colors.foreground, modifier = Modifier.weight(1f))
-        NodButton(stringResource(R.string.action_download), onDownload, style = NodButtonStyle.Text)
-        IconButton(onClick = onDismiss) {
-            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_dismiss), tint = colors.mutedForeground, modifier = Modifier.size(18.dp))
+    val context = LocalContext.current
+    val installer = rememberUpdateInstaller()
+    val install by installer.state.collectAsStateWithLifecycle()
+    Column(modifier.fillMaxWidth().surfaceSm().padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(updateStatus(info, install), style = NodType.small, color = colors.foreground, modifier = Modifier.weight(1f).padding(vertical = 10.dp))
+            UpdateAction(info, install, installer, onBrowser = { context.openUrl(info.downloadUrl) })
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_dismiss), tint = colors.mutedForeground, modifier = Modifier.size(18.dp))
+            }
         }
+        UpdateProgress(install, Modifier.padding(end = 12.dp, bottom = 8.dp))
     }
 }
 

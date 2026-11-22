@@ -16,6 +16,7 @@ import io.github.nilsmorczinietz.nod.data.model.SettingsPatch
 import io.github.nilsmorczinietz.nod.data.model.StreamMessage
 import io.github.nilsmorczinietz.nod.data.store.Session
 import io.github.nilsmorczinietz.nod.data.store.SessionStore
+import io.github.nilsmorczinietz.nod.data.store.UsedPairingCodes
 import io.github.nilsmorczinietz.nod.notifications.Notifier
 import io.github.nilsmorczinietz.nod.push.PushRegistrar
 import kotlinx.coroutines.CoroutineScope
@@ -59,6 +60,7 @@ class NodRepository(
     private val sessionStore: SessionStore,
     private val push: PushRegistrar,
     private val notifier: Notifier,
+    private val usedCodes: UsedPairingCodes,
 ) {
     val pairing: StateFlow<PairingState> = sessionStore.session
         .map { it?.let(PairingState::Paired) ?: PairingState.Unpaired }
@@ -89,6 +91,7 @@ class NodRepository(
         // cancels the pairing screen's scope this function runs in. Persist the
         // Firebase config first (synchronous) and register the token in our own scope.
         push.configure(response.firebase)
+        usedCodes.markUsed(code)
         sessionStore.save(newSession)
         scope.launch { push.registerToken(newSession) }
     }

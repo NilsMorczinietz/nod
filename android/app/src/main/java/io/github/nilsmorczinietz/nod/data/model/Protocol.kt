@@ -83,6 +83,8 @@ data class Question(
     val header: String = "",
     val multiSelect: Boolean = false,
     val options: List<QuestionOption> = emptyList(),
+    /** A free-text reply is allowed besides the options (sent as ResolveInput.message). */
+    val allowText: Boolean = false,
 )
 
 @Serializable

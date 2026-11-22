@@ -11,6 +11,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.graphics.Color
+import io.github.nilsmorczinietz.nod.data.PairingLink
 import io.github.nilsmorczinietz.nod.data.store.DEFAULT_THEME
 import io.github.nilsmorczinietz.nod.data.store.ThemeMode
 import io.github.nilsmorczinietz.nod.ui.NodRoot
@@ -62,7 +63,10 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent) {
         intent.getStringExtra(EXTRA_ITEM_ID)?.let { deepLinks.itemId.value = it }
-        intent.data?.takeIf { it.scheme == "nod" && it.host == "pair" }?.let { deepLinks.pairLink.value = it.toString() }
+        val link = intent.data?.takeIf { it.scheme == "nod" && it.host == "pair" }?.toString() ?: return
+        // A recreated task re-delivers its original link; skip codes we already paired with.
+        val used = PairingLink.parse(link)?.let { (application as NodApp).container.usedPairingCodes.isUsed(it.code) } == true
+        if (!used) deepLinks.pairLink.value = link
     }
 
     companion object {

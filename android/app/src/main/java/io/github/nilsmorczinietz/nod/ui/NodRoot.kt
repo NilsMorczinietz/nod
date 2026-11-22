@@ -229,8 +229,13 @@ private fun RepairDialog(deepLinks: DeepLinks, showMessage: (String) -> Unit) {
     }
     link ?: return
     val close = { deepLinks.pairLink.value = null }
+    // Declining counts as handled: a recreated task must not ask again for this code.
+    val decline = {
+        container.usedPairingCodes.markUsed(link.code)
+        close()
+    }
     AlertDialog(
-        onDismissRequest = close,
+        onDismissRequest = decline,
         title = { Text(stringResource(R.string.repair_title)) },
         text = { Text(stringResource(R.string.repair_body, link.host)) },
         confirmButton = {
@@ -249,7 +254,7 @@ private fun RepairDialog(deepLinks: DeepLinks, showMessage: (String) -> Unit) {
             }) { Text(stringResource(R.string.action_pair_again), color = colors.accentText) }
         },
         dismissButton = {
-            TextButton(onClick = close) { Text(stringResource(R.string.action_cancel), color = colors.foreground) }
+            TextButton(onClick = decline) { Text(stringResource(R.string.action_cancel), color = colors.foreground) }
         },
         containerColor = colors.popover,
         titleContentColor = colors.foreground,

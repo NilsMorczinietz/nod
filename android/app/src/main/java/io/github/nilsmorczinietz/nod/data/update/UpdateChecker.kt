@@ -24,8 +24,20 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-/** A newer release on GitHub. */
-data class UpdateInfo(val version: String, val downloadUrl: String, val notesUrl: String)
+/**
+ * A newer release on GitHub. [downloadUrl] is the browser fallback (the APK, or
+ * the release page); [apkUrl] + [checksumsUrl] enable the in-app install.
+ */
+data class UpdateInfo(
+    val version: String,
+    val downloadUrl: String,
+    val notesUrl: String,
+    val apkName: String? = null,
+    val apkUrl: String? = null,
+    val checksumsUrl: String? = null,
+) {
+    val canInstallInApp: Boolean get() = apkName != null && apkUrl != null && checksumsUrl != null
+}
 
 sealed interface UpdateState {
     data object Unknown : UpdateState
@@ -76,7 +88,16 @@ class UpdateChecker(
             val prefs = store.data.first()
             val cached = prefs[LATEST_VERSION]
             _state.value = if (cached != null && isNewer(cached, currentVersion)) {
-                UpdateState.Available(UpdateInfo(cached, prefs[LATEST_DOWNLOAD].orEmpty(), prefs[LATEST_NOTES].orEmpty()))
+                UpdateState.Available(
+                    UpdateInfo(
+                        version = cached,
+                        downloadUrl = prefs[LATEST_DOWNLOAD].orEmpty(),
+                        notesUrl = prefs[LATEST_NOTES].orEmpty(),
+                        apkName = prefs[LATEST_APK_NAME],
+                        apkUrl = prefs[LATEST_APK_NAME]?.let { prefs[LATEST_DOWNLOAD] },
+                        checksumsUrl = prefs[LATEST_CHECKSUMS],
+                    ),
+                )
             } else {
                 UpdateState.Unknown
             }
@@ -99,11 +120,21 @@ class UpdateChecker(
                 UpdateState.UpToDate
             } else {
                 val apk = release.assets.firstOrNull { it.name.endsWith(".apk") }
-                val info = UpdateInfo(version, apk?.downloadUrl ?: release.htmlUrl, release.htmlUrl)
+                val checksums = release.assets.firstOrNull { it.name == CHECKSUMS_ASSET }
+                val info = UpdateInfo(
+                    version = version,
+                    downloadUrl = apk?.downloadUrl ?: release.htmlUrl,
+                    notesUrl = release.htmlUrl,
+                    apkName = apk?.name,
+                    apkUrl = apk?.downloadUrl,
+                    checksumsUrl = checksums?.downloadUrl,
+                )
                 store.edit {
                     it[LATEST_VERSION] = info.version
                     it[LATEST_DOWNLOAD] = info.downloadUrl
                     it[LATEST_NOTES] = info.notesUrl
+                    if (info.apkName != null) it[LATEST_APK_NAME] = info.apkName else it.remove(LATEST_APK_NAME)
+                    if (info.checksumsUrl != null) it[LATEST_CHECKSUMS] = info.checksumsUrl else it.remove(LATEST_CHECKSUMS)
                 }
                 UpdateState.Available(info)
             }
@@ -146,6 +177,9 @@ class UpdateChecker(
         private val LATEST_DOWNLOAD = stringPreferencesKey("latest_download")
         private val LATEST_NOTES = stringPreferencesKey("latest_notes")
         private val DISMISSED = stringPreferencesKey("dismissed_version")
+        private val LATEST_APK_NAME = stringPreferencesKey("latest_apk_name")
+        private val LATEST_CHECKSUMS = stringPreferencesKey("latest_checksums")
+        private const val CHECKSUMS_ASSET = "SHA256SUMS"
 
         /** Semantic version comparison ("0.10.0" > "0.9.3"); suffixes like "-beta" are ignored. */
         fun isNewer(candidate: String, current: String): Boolean {

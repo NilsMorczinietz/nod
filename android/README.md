@@ -77,8 +77,17 @@ local testing only; Android refuses to update an app signed with a different key
 There is no Play Store build. On start (at most every 12 h) and via Settings → About →
 "Check for updates", the app reads `api.github.com/repos/NilsMorczinietz/nod/releases/latest`.
 If the tag (`vX.Y.Z`) is newer than the installed version, Settings → About shows the update
-and the inbox shows a small, dismissible banner. *Download* opens the release's `.apk` in the
-browser; Android then installs it as usual (no install permission in the app).
+and the inbox shows a small, dismissible banner.
+
+*Update* installs it in place (`data/update/UpdateInstaller.kt`):
+
+1. Asks once for "Install unknown apps" (`REQUEST_INSTALL_PACKAGES`) and continues when you return.
+2. Downloads `Nod-X.Y.Z.apk` into the app cache with progress (no storage permission).
+3. Checks its SHA-256 against the release's `SHA256SUMS` and aborts on a mismatch.
+4. Hands it to the system installer (PackageInstaller session). Android only accepts an APK
+   signed with the same key as the installed app, and you confirm the system dialog.
+
+The cached file is deleted afterwards. *Open in browser* stays as a fallback.
 
 ## Testing against a local relay
 

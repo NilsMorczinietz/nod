@@ -31,6 +31,7 @@ import io.github.nilsmorczinietz.nod.data.model.Decision
 import io.github.nilsmorczinietz.nod.data.model.Item
 import io.github.nilsmorczinietz.nod.data.model.ItemKind
 import io.github.nilsmorczinietz.nod.data.model.ItemStatus
+import io.github.nilsmorczinietz.nod.data.model.ResolveInput
 import io.github.nilsmorczinietz.nod.ui.theme.NodTheme
 import io.github.nilsmorczinietz.nod.ui.theme.NodType
 
@@ -85,9 +86,11 @@ fun RequestCard(
     onOpen: () -> Unit,
     onQuickDecision: (Decision) -> Unit,
     modifier: Modifier = Modifier,
+    onResolve: (ResolveInput) -> Unit = {},
 ) {
     val colors = NodTheme.colors
     val pending = item.status == ItemStatus.Pending
+    val reply = item.replyQuestion
     Column(
         modifier = modifier
             .enterMotion(item.id)
@@ -95,7 +98,8 @@ fun RequestCard(
             .clickable(onClick = onOpen),
     ) {
         Column(Modifier.padding(12.dp)) {
-            Text(item.title, style = NodType.heading, color = colors.foreground, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            // A reply question leads with the question itself ("Shall I also update the docs?").
+            Text(reply?.question ?: item.title, style = NodType.heading, color = colors.foreground, maxLines = if (reply != null) 4 else 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(6.dp))
             MetaLine(item.session.agentName, item.session.project, relativeTime(item.createdAt))
         }
@@ -104,13 +108,22 @@ fun RequestCard(
             val command = item.permission?.summary?.takeIf(String::isNotBlank)
             if (command != null) {
                 Text(command, style = NodType.mono, color = colors.foreground, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            } else if (!item.body.isNullOrBlank()) {
+            } else if (reply == null && !item.body.isNullOrBlank()) {
                 Text(item.body, style = NodType.body.copy(fontSize = NodType.small.fontSize), color = colors.mutedForeground, maxLines = 3, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.height(4.dp))
             if (pending) ExpiryText(item.expiresAt) else Badge(statusOf(item))
             Spacer(Modifier.height(12.dp))
             val busy = resolving != null || !pending
+            if (reply != null) {
+                ReplyComposer(
+                    reply,
+                    enabled = !busy,
+                    onOption = { onResolve(ResolveInput(Decision.Answer, answers = mapOf(reply.question to listOf(it)))) },
+                    onReply = { onResolve(ResolveInput(Decision.Answer, answers = emptyMap(), message = it)) },
+                )
+                return@Column
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (item.kind) {
                     ItemKind.Permission -> {
@@ -166,7 +179,12 @@ fun DecisionLedger(items: List<Item>, todayCount: Int, onOpen: (Item) -> Unit, m
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                val command = item.permission?.summary?.takeIf(String::isNotBlank) ?: item.title
+                val replied = item.replyText?.takeIf { item.replyQuestion != null }
+                val command = when {
+                    replied != null && item.resolution?.message != null -> stringResource(R.string.ledger_replied, replied)
+                    replied != null -> replied
+                    else -> item.permission?.summary?.takeIf(String::isNotBlank) ?: item.replyQuestion?.question ?: item.title
+                }
                 Text(
                     command,
                     style = NodType.mono,

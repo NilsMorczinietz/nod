@@ -62,6 +62,15 @@ class DetailViewModel(
 
     fun deny(message: String? = null) = submit(ResolveInput(Decision.Deny, message = message?.takeIf(String::isNotBlank)))
 
+    /** Reply question: one of its options ("Yes" / "No"). */
+    fun answerOption(label: String) {
+        val question = item.value?.questions?.singleOrNull() ?: return
+        submit(ResolveInput(Decision.Answer, answers = mapOf(question.question to listOf(label))))
+    }
+
+    /** Reply question: free text instead of an option. */
+    fun reply(text: String) = submit(ResolveInput(Decision.Answer, answers = emptyMap(), message = text))
+
     fun submitAnswers() {
         val questions = item.value?.questions ?: return
         val answers = questions.mapIndexedNotNull { index, q ->

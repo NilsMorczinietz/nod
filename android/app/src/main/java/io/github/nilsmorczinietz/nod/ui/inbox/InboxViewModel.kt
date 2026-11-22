@@ -13,6 +13,7 @@ import io.github.nilsmorczinietz.nod.data.model.Item
 import io.github.nilsmorczinietz.nod.data.model.ItemKind
 import io.github.nilsmorczinietz.nod.data.model.ItemStatus
 import io.github.nilsmorczinietz.nod.ui.components.WorkingSession
+import io.github.nilsmorczinietz.nod.ui.components.replyQuestion
 import io.github.nilsmorczinietz.nod.data.model.ResolveInput
 import java.time.Instant
 import java.time.LocalDate
@@ -115,12 +116,15 @@ class InboxViewModel(
         }
     }
 
-    fun quickResolve(item: Item, decision: Decision) {
+    fun quickResolve(item: Item, decision: Decision) = resolve(item, ResolveInput(decision))
+
+    /** Any answer from a card: approve/deny, a question option or a free-text reply. */
+    fun resolve(item: Item, input: ResolveInput) {
         if (item.id in resolving.value) return
-        resolving.update { it + (item.id to decision) }
+        resolving.update { it + (item.id to input.decision) }
         viewModelScope.launch {
             try {
-                when (val result = repository.resolve(item.id, ResolveInput(decision))) {
+                when (val result = repository.resolve(item.id, input)) {
                     is ResolveResult.Resolved -> delay(OUTCOME_HOLD_MS)
                     is ResolveResult.AlreadyFinished -> _messages.tryEmit(InboxMessage.AlreadyAnswered(result.item.resolution?.deviceName))
                 }
@@ -144,7 +148,7 @@ class InboxViewModel(
                 items.none { it.id in pendingIds } &&
                 latest.kind != ItemKind.Completed && latest.kind != ItemKind.Failed
             if (!active) return@mapNotNull null
-            WorkingSession(latest.session.project, latest.session.agentName, latest.createdAt, latest.permission?.summary ?: latest.title)
+            WorkingSession(latest.session.project, latest.session.agentName, latest.createdAt, latest.permission?.summary ?: latest.replyQuestion?.question ?: latest.title)
         }.sortedByDescending(WorkingSession::since)
     }
 

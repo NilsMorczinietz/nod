@@ -20,7 +20,7 @@ object ResolveIntent {
     const val EXTRA_DECISION = "decision"
     const val EXTRA_ANSWER_INDEX = "answer_index"
 
-    /** RemoteInput key of the optional note ("Deny with note", "Reject with note"). */
+    /** RemoteInput key of the note ("Deny with note", "Reject with note") or a question's free-text reply. */
     const val KEY_NOTE = "note"
     const val ALLOW = "allow"
     const val DENY = "deny"
@@ -53,6 +53,8 @@ class ActionReceiver : BroadcastReceiver() {
                     val input = when (decision) {
                         ResolveIntent.ALLOW -> ResolveInput(Decision.Allow)
                         ResolveIntent.DENY -> ResolveInput(Decision.Deny, message = note)
+                        // "Reply" on a question: free text instead of an option.
+                        ResolveIntent.ANSWER if note != null -> ResolveInput(Decision.Answer, answers = emptyMap(), message = note)
                         else -> {
                             // Fetch the item: answers are keyed by the exact question text.
                             val question = container.repository.loadItem(itemId)?.questions?.singleOrNull()
