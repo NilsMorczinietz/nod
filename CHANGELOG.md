@@ -6,6 +6,20 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-22
+
+### Changed
+
+- Desktop app icon: white pixel mark on a transparent background (taskbar, tray, installer).
+
+### Fixed
+
+- The recent-activity overview can always be closed again. It could reopen right after closing and
+  then ignore the collapse button.
+- The island no longer gets stuck when Windows pauses its animations, and an overlay window with
+  nothing to show no longer blocks clicks at the top of the screen.
+- Fewer redundant window updates for the overlay.
+
 ## [0.2.1] - 2026-11-22
 
 ### Changed
