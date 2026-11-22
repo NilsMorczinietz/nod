@@ -14,6 +14,8 @@ interface HookHandler {
   type: 'command'
   command: string
   timeout?: number
+  /** Runs in the background; exit code 2 wakes Claude with the hook's stderr. */
+  asyncRewake?: boolean
 }
 interface MatcherGroup {
   matcher?: string
@@ -51,7 +53,15 @@ const nodHooks = (command: string, waitSeconds: number): HooksConfig => {
     PermissionRequest: [{ matcher: '*', hooks: [handler(blocking)] }],
     PreToolUse: [{ matcher: 'AskUserQuestion|ExitPlanMode', hooks: [handler(blocking)] }],
     UserPromptSubmit: [{ hooks: [handler(5)] }],
-    Stop: [{ hooks: [handler(15)] }],
+    Stop: [
+      { hooks: [handler(15)] },
+      // Background hook that can wake Claude with a reply from a device.
+      {
+        hooks: [
+          { type: 'command', command: `${command} --reply`, timeout: blocking, asyncRewake: true },
+        ],
+      },
+    ],
     StopFailure: [{ hooks: [handler(15)] }],
     Notification: [{ hooks: [handler(15)] }],
   }

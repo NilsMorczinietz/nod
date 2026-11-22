@@ -122,9 +122,12 @@ Cursor, Claude Desktop, Codex and others can use Nod through its MCP server, and
 {
   "waitSeconds": 600, // how long a request waits for an answer before the terminal asks
   "minTaskSeconds": 20, // only send "done" for turns that took at least this long
-  "notify": { "completed": true, "failed": true, "idle": false },
+  "notify": { "completed": true, "failed": true, "idle": false, "replies": true },
 }
 ```
+
+`replies`: when Claude ends a turn with a question ("Shall I …?"), it is sent to your devices and
+your answer (Yes, No or your own text) continues the session. Typing in the terminal withdraws it.
 
 Run `nod install` after changing `waitSeconds`, because it updates the hook timeouts.
 

@@ -17,7 +17,7 @@ export interface MappingContext {
   config: Pick<Config, 'waitSeconds' | 'notify'>
 }
 
-const sessionRef = (input: HookInput, ctx: MappingContext): SessionRef => {
+export const sessionRef = (input: HookInput, ctx: MappingContext): SessionRef => {
   const root = ctx.projectDir || input.cwd
   return {
     id: input.session_id,

@@ -38,16 +38,24 @@ Errors look like `{ "error": "<code>", "message": "<text>" }`.
 
 `kind` is one of:
 
-| Kind         | Interactive | Created by hook                                                | Answer                                                       |
-| ------------ | ----------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
-| `permission` | yes         | `PermissionRequest`                                            | `allow` / `deny` (+ `alwaysAllow`, `message`)                |
-| `question`   | yes         | `PreToolUse` → `AskUserQuestion`                               | `answer` with `answers: { [question]: string[] }`, or `deny` |
-| `plan`       | yes         | `PreToolUse` → `ExitPlanMode`                                  | `allow` (approve) / `deny` with feedback in `message`        |
-| `completed`  | no          | `Stop`                                                         | –                                                            |
-| `failed`     | no          | `StopFailure`                                                  | –                                                            |
-| `attention`  | no          | `Notification` (elicitation, agent needs input, optional idle) | –                                                            |
+| Kind         | Interactive | Created by hook                                                                            | Answer                                                       |
+| ------------ | ----------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `permission` | yes         | `PermissionRequest`                                                                        | `allow` / `deny` (+ `alwaysAllow`, `message`)                |
+| `question`   | yes         | `PreToolUse` → `AskUserQuestion`, or `Stop` when a turn ends with a question (`allowText`) | `answer` with `answers: { [question]: string[] }`, or `deny` |
+| `plan`       | yes         | `PreToolUse` → `ExitPlanMode`                                                              | `allow` (approve) / `deny` with feedback in `message`        |
+| `completed`  | no          | `Stop`                                                                                     | –                                                            |
+| `failed`     | no          | `StopFailure`                                                                              | –                                                            |
+| `attention`  | no          | `Notification` (elicitation, agent needs input, optional idle)                             | –                                                            |
 
 Status lifecycle: `pending → resolved | expired | cancelled`; informational items are `info`.
+
+## Replies to prose questions
+
+When a turn ends with a question in plain text, the CLI's background Stop hook (`asyncRewake`)
+sends a `question` item whose single question has `allowText: true` and the options "Yes" / "No".
+Clients show a text field; a free-text reply resolves with
+`{ "decision": "answer", "answers": {}, "message": "<text>" }`. The hook then exits with code 2 and
+Claude Code wakes the session with the reply. A new prompt in the terminal cancels the item.
 
 ## Routing modes
 

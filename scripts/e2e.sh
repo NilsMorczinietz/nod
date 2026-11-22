@@ -89,4 +89,23 @@ $NOD mode away >/dev/null
 echo '{"session_id":"s9","cwd":"/w","hook_event_name":"Stop","last_assistant_message":"**Done**"}' | $NOD hook
 [[ $(curl -s "$R/v1/items?limit=1" -H "authorization: Bearer $TOK" | jq_ '.items[0].body') == Done ]] && pass "completed notification"
 
+# Replies to prose questions (Stop hook with asyncRewake)
+grep -q '"asyncRewake": true' "$CLAUDE_CONFIG_DIR/settings.json" && pass "reply hook registered with asyncRewake"
+ASK='{"session_id":"r1","cwd":"/w","hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Fertig.\n\nSoll ich den Release anlegen?"}'
+echo '{"session_id":"r1","cwd":"/w","hook_event_name":"UserPromptSubmit","prompt":"x"}' | $NOD hook
+BEFORE=$(curl -s "$R/v1/items?limit=1" -H "authorization: Bearer $TOK" | jq_ '.items[0].id')
+echo "$ASK" | $NOD hook
+[[ $(curl -s "$R/v1/items?limit=1" -H "authorization: Bearer $TOK" | jq_ '.items[0].id') == "$BEFORE" ]] && pass "no 'completed' push for a turn that ends with a question"
+
+answer '{"decision":"answer","answers":{},"message":"ja, aber erst morgen"}' & AP=$!
+set +e; ERR=$(echo "$ASK" | timeout 30 $NOD hook --reply 2>&1 >/dev/null); CODE=$?; set -e; wait $AP
+[[ $CODE == 2 && "$ERR" == *"ja, aber erst morgen"* ]] && pass "reply wakes Claude (exit 2 + reply on stderr)"
+
+echo "$ASK" | $NOD hook --reply 2>"$TMP/late.err" & RP=$!
+for _ in $(seq 1 40); do sleep 0.5; [[ -n $(curl -s "$R/v1/items?status=pending" -H "authorization: Bearer $TOK" | jq_ '.items[0]?.id ?? ""') ]] && break; done
+echo '{"session_id":"r1","cwd":"/w","hook_event_name":"UserPromptSubmit","prompt":"answered in the terminal"}' | $NOD hook
+set +e; wait $RP; CODE=$?; set -e
+[[ $CODE == 0 && ! -s "$TMP/late.err" && $(curl -s "$R/v1/items?limit=1" -H "authorization: Bearer $TOK" | jq_ '.items[0].status') == cancelled ]] \
+  && pass "terminal answer withdraws the question; no late wake-up"
+
 echo; pass "all e2e checks passed"

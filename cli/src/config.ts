@@ -10,6 +10,8 @@ export interface NotifyOptions {
   failed: boolean
   /** Push when Claude has been idle and waits for input (often redundant with "completed"). */
   idle: boolean
+  /** When a turn ends with a question, ask it on the devices and wake Claude with the reply. */
+  replies: boolean
 }
 
 export interface Config {
@@ -25,7 +27,7 @@ export interface Config {
 export const DEFAULT_CONFIG: Omit<Config, 'relayUrl' | 'adminToken'> = {
   waitSeconds: 600,
   minTaskSeconds: 20,
-  notify: { completed: true, failed: true, idle: false },
+  notify: { completed: true, failed: true, idle: false, replies: true },
 }
 
 const isWindows = process.platform === 'win32'

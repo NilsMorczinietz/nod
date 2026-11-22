@@ -647,6 +647,7 @@ export class Hub extends DurableObject<Env> {
       expiresAt: String(item.expiresAt),
       ...(quickOptions ? { options: quickOptions } : {}),
       ...(item.permission?.canAlwaysAllow ? { canAlwaysAllow: '1' } : {}),
+      ...(question?.allowText ? { allowText: '1' } : {}),
     }
     const interactive = isInteractive(item.kind)
     const ttl = interactive ? (item.expiresAt - Date.now()) / 1000 : 60 * 60

@@ -62,6 +62,11 @@ export interface Question {
   header: string
   multiSelect: boolean
   options: QuestionOption[]
+  /**
+   * Also accept a free-text reply (sent as ResolveInput.message with decision "answer").
+   * Used when Claude ends a turn with a question in prose.
+   */
+  allowText?: boolean
 }
 
 export interface PlanDetails {
@@ -90,7 +95,7 @@ export interface ResolveInput {
   alwaysAllow?: boolean
   /** question text -> chosen option labels (question items only). */
   answers?: Record<string, string[]>
-  /** Optional free text: deny reason or plan feedback. */
+  /** Optional free text: deny reason, plan feedback, or a free-text reply to a question. */
   message?: string
 }
 
@@ -209,6 +214,8 @@ export type PushPayload =
       agent?: string
       /** JSON-encoded string[] of option labels for single-choice questions (≤ 3). */
       options?: string
+      /** "1" when a free-text reply is accepted (question items). */
+      allowText?: string
       /** "1" when the permission can be persisted as an "always allow" rule. */
       canAlwaysAllow?: string
       expiresAt: string

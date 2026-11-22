@@ -3,7 +3,7 @@ import { askCommand, notifyCommand } from './commands/ask.ts'
 import { install, uninstall } from './commands/install.ts'
 import { devices, pair, revoke, setMode, setPaused, status, test } from './commands/manage.ts'
 import { setup } from './commands/setup.ts'
-import { runHook } from './hook/run.ts'
+import { runHook, runReplyHook } from './hook/run.ts'
 import { runMcpServer } from './mcp/server.ts'
 import { update } from './commands/update.ts'
 import { fail, style } from './log.ts'
@@ -46,6 +46,7 @@ const main = async (): Promise<void> => {
       timeout: { type: 'string' },
       json: { type: 'boolean' },
       failed: { type: 'boolean' },
+      reply: { type: 'boolean' },
     },
   })
   const [command, arg, arg2] = positionals
@@ -53,7 +54,7 @@ const main = async (): Promise<void> => {
   if (values.version) return console.log(VERSION)
   switch (values.help ? 'help' : command) {
     case 'hook':
-      return runHook()
+      return values.reply ? runReplyHook() : runHook()
     case 'setup':
       return setup({ relay: values.relay, token: values.token })
     case 'install':

@@ -52,6 +52,7 @@ const parseQuestion = (value: unknown, index: number): Question => {
     question: string(q.question, 'question', 500),
     header: string(q.header ?? '', 'header', 40),
     multiSelect: q.multiSelect === true,
+    ...(q.allowText === true ? { allowText: true } : {}),
     options: options.map((raw, i) => {
       const option = object(raw, `options[${i}]`)
       return {
