@@ -95,6 +95,13 @@ npm run build:windows   # → dist-windows/Nod.exe + WebView2Loader.dll
 The cross build produces `Nod.exe` plus `WebView2Loader.dll` (keep them together, no installer).
 It needs the WebView2 runtime, which ships with Windows 10 (21H2+) and 11.
 
+## Installer branding
+
+`installer/` holds the NSIS branding: `sidebar.html` / `header.html` (sources), `render.sh`
+(renders them with a headless Chromium/Edge and converts to 24-bit BMP with ImageMagick) and
+`hooks.nsh` (welcome/finish texts, "Start Nod"). The BMPs are committed; re-run `render.sh` after
+changing the sources or `design/mark*.svg`. Passive/silent installs (the updater) skip these pages.
+
 ## Release
 
 Releases are built by GitHub Actions (`.github/workflows/release.yml`, `tauri-apps/tauri-action`

@@ -61,6 +61,17 @@
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "../installer/header.bmp",
+        "sidebarImage": "../installer/sidebar.bmp",
+        "installerHooks": "../installer/hooks.nsh",
+        "languages": [
+          "English"
+        ],
+        "displayLanguageSelector": false
       }
     },
     "createUpdaterArtifacts": true
