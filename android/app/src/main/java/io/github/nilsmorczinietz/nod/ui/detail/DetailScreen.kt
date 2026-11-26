@@ -142,12 +142,21 @@ fun DetailScreen(
                     CodeBlock(permission.detail ?: permission.summary)
                 }
                 // The question is the heading; options and the reply field sit in the action bar.
-                ItemKind.Question if reply != null -> current.replyText?.let { answered ->
-                    Text(
-                        if (current.resolution?.message != null) stringResource(R.string.ledger_replied, answered) else answered,
-                        style = NodType.body,
-                        color = colors.foreground,
-                    )
+                // The full message (body) follows as context: the heading only holds the ask.
+                ItemKind.Question if reply != null -> Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    current.replyText?.let { answered ->
+                        Text(
+                            if (current.resolution?.message != null) stringResource(R.string.ledger_replied, answered) else answered,
+                            style = NodType.body,
+                            color = colors.foreground,
+                        )
+                    }
+                    current.body?.takeIf { it.isNotBlank() && it != reply.question }?.let { message ->
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Eyebrow(stringResource(R.string.detail_full_message))
+                            MarkdownText(message)
+                        }
+                    }
                 }
                 ItemKind.Question -> Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                     current.questions.orEmpty().forEachIndexed { index, question ->

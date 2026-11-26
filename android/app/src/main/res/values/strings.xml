@@ -45,6 +45,7 @@
     <!-- Detail -->
     <string name="question_multi_hint">Pick one or more</string>
     <string name="detail_answered_on">Answered on %1$s</string>
+    <string name="detail_full_message">Full message</string>
 
     <!-- Celebrations -->
 

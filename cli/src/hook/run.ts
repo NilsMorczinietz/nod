@@ -163,7 +163,7 @@ export const runReplyHook = async (): Promise<void> => {
     })
     const client = new RelayClient(config.relayUrl, config.adminToken)
     const { item, delivered } = await client.createItem(
-      replyItem(session, question, config.waitSeconds),
+      replyItem(session, question, config.waitSeconds, input.last_assistant_message),
     )
     if (!delivered) return
 

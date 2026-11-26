@@ -104,8 +104,15 @@
   let reply = $state('')
   let expanded = $state(false)
   let replyInput: HTMLInputElement | undefined = $state()
-  /** Long questions are clamped to four lines until "Show more". */
-  const longQuestion = $derived((replyQuestion?.question.length ?? 0) > 200)
+  /**
+   * The CLI keeps reply questions short (≤ 280 characters), so they show whole:
+   * the decision sits at their end. Longer ones (other agents) clamp until "Show more".
+   */
+  const longQuestion = $derived((replyQuestion?.question.length ?? 0) > 360)
+  /** The whole message Claude ended with the question (Markdown), when it says more. */
+  const fullMessage = $derived(
+    replyQuestion && item.body && item.body !== replyQuestion.question ? item.body : null,
+  )
 
   const choose = (label: string | undefined) => {
     if (replyQuestion && label) {
@@ -185,10 +192,17 @@
       <p class="question prose" class:clamped={longQuestion && !expanded}>
         {replyQuestion.question}
       </p>
-      {#if longQuestion}
-        <button class="btn text more" onclick={() => (expanded = !expanded)}>
-          {expanded ? 'Show less' : 'Show more'}
+      {#if longQuestion || fullMessage}
+        <button
+          class="btn text more"
+          aria-expanded={expanded}
+          onclick={() => (expanded = !expanded)}
+        >
+          {expanded ? 'Show less' : fullMessage ? 'Show full message' : 'Show more'}
         </button>
+      {/if}
+      {#if expanded && fullMessage}
+        <div class="message" class:island><Markdown source={fullMessage} /></div>
       {/if}
     </div>
   {:else}
@@ -565,10 +579,20 @@
   }
   .prose.clamped {
     display: -webkit-box;
-    -webkit-line-clamp: 4;
-    line-clamp: 4;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  .message {
+    margin-top: 4px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    background: var(--code-surface, var(--c-muted));
+  }
+  .message.island {
+    max-height: 200px;
+    overflow-y: auto;
   }
   .more {
     justify-self: start;

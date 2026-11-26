@@ -6,6 +6,17 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Notifications on Android show the agent that asks instead of the Nod icon: the Claude mark for
+  Claude Code, and the marks of Cursor, Gemini, Windsurf, Copilot, Cline, Zed, OpenCode, Warp and
+  Mistral. They are conversation notifications titled "<agent> · <project>", with Nod as a small
+  badge. Scripts and unknown agents keep the Nod mark.
+- Long messages no longer lose their end. A question Claude asks at the end of a long paragraph
+  arrives whole (leading context is dropped instead), and the full message is one tap away in the
+  app ("Full message") and on the desktop ("Show full message"). Text over a limit is shortened in
+  the middle, never at the end. Completion summaries keep up to 4000 characters.
+
 ## [0.2.2] - 2026-11-22
 
 ### Changed

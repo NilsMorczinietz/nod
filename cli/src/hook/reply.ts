@@ -6,6 +6,7 @@
  * Pure helpers only – no I/O – so they can be unit-tested.
  */
 import type { Item, NewItem, SessionRef } from '@nod/protocol'
+import { clipMiddle, markdownTail } from './summarize.ts'
 
 /** Phrases that ask for a decision even without a question mark. */
 const ASKING_PHRASES = [
@@ -47,6 +48,44 @@ const lastParagraph = (message: string): string => {
   return paragraphs.at(-1) ?? ''
 }
 
+/** Longest question we send. It is the notification text and the card heading. */
+export const MAX_QUESTION = 280
+/** Longest message we attach as context (the relay keeps 4000). */
+const MAX_CONTEXT = 3800
+
+/** Sentences with their start offset; "v0.2.2" or "reply.ts" don't end one. */
+const sentencesOf = (paragraph: string): { start: number; text: string }[] =>
+  [...paragraph.matchAll(/\S[\s\S]*?(?:[.!?]+(?=\s|$)|$)/g)].map((m) => ({
+    start: m.index,
+    text: m[0].trim(),
+  }))
+
+const isAsking = (sentence: string): boolean =>
+  /\?["“”»«')]*$/.test(sentence) || ASKING_PHRASES.some((re) => re.test(sentence))
+
+/**
+ * The part of the paragraph that asks: the whole paragraph when it fits,
+ * else the longest ending that still contains the question, else the
+ * question itself. Never cut at the end, that is where the decision is.
+ */
+const focus = (paragraph: string, sentences: { start: number; text: string }[]): string => {
+  if (paragraph.length <= MAX_QUESTION) return paragraph
+  for (const [i, sentence] of sentences.entries()) {
+    const ending = paragraph.slice(sentence.start)
+    if (ending.length <= MAX_QUESTION && sentences.slice(i).some((s) => isAsking(s.text))) {
+      return ending
+    }
+  }
+  // The question is followed by long remarks: start at it and take what fits.
+  const asking = sentences.findLastIndex((s) => isAsking(s.text))
+  let text = sentences[asking]!.text
+  for (const next of sentences.slice(asking + 1)) {
+    if (text.length + 1 + next.text.length > MAX_QUESTION) break
+    text = `${text} ${next.text}`
+  }
+  return clipMiddle(text, MAX_QUESTION)
+}
+
 /**
  * The question the user is expected to answer, or null if the message doesn't
  * end by asking something. Only the final paragraph counts: questions in the
@@ -56,29 +95,41 @@ export const pendingQuestion = (message: string | undefined): string | null => {
   if (!message) return null
   const paragraph = lastParagraph(message)
   if (!paragraph) return null
-  const sentences = paragraph.match(/[^.!?]+[.!?]*/g)?.map((s) => s.trim()) ?? [paragraph]
-  const asks = sentences.some((s) => /\?\s*$/.test(s) || ASKING_PHRASES.some((re) => re.test(s)))
-  if (!asks) return null
-  // Send the whole paragraph: the sentences around the question are its context.
-  return paragraph.length > 300 ? `${paragraph.slice(0, 299)}…` : paragraph
+  const sentences = sentencesOf(paragraph)
+  if (!sentences.some((s) => isAsking(s.text))) return null
+  // The sentences around the question are its context, so they come along while they fit.
+  return focus(paragraph, sentences)
 }
 
-export const replyItem = (session: SessionRef, question: string, ttlSeconds: number): NewItem => ({
-  kind: 'question',
-  session,
-  title: `${session.agent ?? 'Claude Code'} is waiting for you`,
-  body: question,
-  ttlSeconds,
-  questions: [
-    {
-      question,
-      header: '',
-      multiSelect: false,
-      options: [{ label: 'Yes' }, { label: 'No' }],
-      allowText: true,
-    },
-  ],
-})
+/**
+ * A reply request. `question` is what the devices lead with; `message` (the
+ * whole turn, Markdown) travels as the body so the apps can show the context.
+ */
+export const replyItem = (
+  session: SessionRef,
+  question: string,
+  ttlSeconds: number,
+  message?: string,
+): NewItem => {
+  const context = message?.trim()
+  return {
+    kind: 'question',
+    session,
+    title: `${session.agent ?? 'Claude Code'} is waiting for you`,
+    body:
+      context && context.length > question.length ? markdownTail(context, MAX_CONTEXT) : question,
+    ttlSeconds,
+    questions: [
+      {
+        question,
+        header: '',
+        multiSelect: false,
+        options: [{ label: 'Yes' }, { label: 'No' }],
+        allowText: true,
+      },
+    ],
+  }
+}
 
 /**
  * Text that wakes Claude with the user's answer, or null when there is

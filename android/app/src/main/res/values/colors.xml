@@ -6,4 +6,12 @@
     <color name="nod_danger">#D40924</color>
     <color name="nod_icon_background">#FFFFFF</color>
     <color name="nod_icon_foreground">#007273</color>
+    <!-- Notification accents of the asking agent (notifications/AgentBrand.kt). Brand colours
+         come from simple-icons; black marks use a neutral that works in both themes. -->
+    <color name="agent_claude">#D97757</color>
+    <color name="agent_gemini">#8E75B2</color>
+    <color name="agent_zed">#084CCF</color>
+    <color name="agent_warp">#01A4FF</color>
+    <color name="agent_mistral">#FA520F</color>
+    <color name="agent_mono">#18181B</color>
 </resources>

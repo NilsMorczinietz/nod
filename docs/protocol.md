@@ -57,6 +57,14 @@ Clients show a text field; a free-text reply resolves with
 `{ "decision": "answer", "answers": {}, "message": "<text>" }`. The hook then exits with code 2 and
 Claude Code wakes the session with the reply. A new prompt in the terminal cancels the item.
 
+The question is the part of the last paragraph that asks, at most 280 characters. When the
+paragraph is longer, leading sentences are dropped first, so the decision at its end always
+survives. `body` carries the whole message (Markdown, its end kept if it exceeds the limit) as
+context; clients lead with the question and offer the message on demand.
+
+Text that exceeds a limit is shortened in the middle (`start … end`), both by the CLI and the
+relay, because messages tend to put the decision last.
+
 ## Routing modes
 
 | Mode       | Requests (permission, question, plan)                        | Updates (done, failed, attention) |
@@ -92,6 +100,10 @@ All values are strings.
   "project": "acme", "agent": "Claude Code", "expiresAt": "1795282236563", "options": "[\"SQLite\",\"Postgres\"]", "canAlwaysAllow": "1" }
 { "type": "dismiss", "id": "…" }
 ```
+
+`body` is the item's single question when it has one, else its body (or the permission summary),
+at most 700 characters. `agent` picks the notification icon on Android (Claude, Cursor, Gemini, …;
+unknown agents get the Nod mark).
 
 Interactive items are sent with `HIGH` priority and a TTL equal to their remaining
 lifetime; `dismiss` and informational items use `NORMAL`.

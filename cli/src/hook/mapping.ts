@@ -98,7 +98,7 @@ export const toNewItem = (input: HookInput, ctx: MappingContext): NewItem | null
         kind: 'completed',
         session,
         title: 'Task complete',
-        body: plainText(input.last_assistant_message ?? '', 600),
+        body: plainText(input.last_assistant_message ?? '', 4000),
       }
     case 'StopFailure': {
       if (!ctx.config.notify.failed) return null

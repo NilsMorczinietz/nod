@@ -9,7 +9,16 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import androidx.core.app.NotificationCompat
+import androidx.core.app.Person
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.RemoteInput
 import androidx.core.content.ContextCompat
@@ -180,12 +189,18 @@ class Notifier(private val context: Context) {
 
     fun cancel(id: String) = manager.cancel(id, NOTIFICATION_ID)
 
-    fun cancelAll() = manager.cancelAll()
+    fun cancelAll() {
+        manager.cancelAll()
+        // The agent conversations (shortcuts) only exist for notifications.
+        runCatching { ShortcutManagerCompat.removeAllDynamicShortcuts(context) }
+    }
 
     // ---------------------------------------------------------------------
 
     private fun base(item: PushItem, channel: String, showDetails: Boolean, actions: List<NotificationCompat.Action>): NotificationCompat.Builder {
-        val color = ContextCompat.getColor(context, if (item.kind == ItemKind.Failed) R.color.nod_danger else R.color.nod_primary)
+        // The asking agent's mark and colour (Claude, Cursor, …); failures stay red.
+        val brand = AgentBrand.of(item.agent)
+        val color = ContextCompat.getColor(context, if (item.kind == ItemKind.Failed) R.color.nod_danger else brand.color)
         // "<Agent> needs you" / "Run the test suite?": short and plain; the
         // command follows on the expanded line (ref: lock-screen notification).
         val text = when (item.kind) {
@@ -193,13 +208,25 @@ class Notifier(private val context: Context) {
             else -> item.body.ifBlank { item.title }
         }
         val expanded = if (item.kind == ItemKind.Permission && item.body.isNotBlank() && item.body != text) "$text\n${item.body}" else text
+        val title = context.getString(if (item.isReply) R.string.notif_waiting else titleFor(item.kind), item.agent)
+        // A conversation with the agent: Android then shows the agent's mark (Claude, Cursor, …)
+        // where it would show the Nod app icon, and Nod only as a small badge.
+        val agent = conversationWith(item.agent, item.project, brand)
+        // The conversation title only names agent and project, so updates say what happened.
+        val message = if (item.kind.isInteractive) expanded else "$title: $expanded"
         return NotificationCompat.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_stat_nod)
+            .setSmallIcon(brand.icon)
             .setColor(color)
-            .setContentTitle(context.getString(if (item.isReply) R.string.notif_waiting else titleFor(item.kind), item.agent))
+            .setContentTitle(title)
             .setContentText(text)
             .setSubText(item.project)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
+            .setShortcutId(agent.shortcutId)
+            .setStyle(
+                NotificationCompat.MessagingStyle(agent.person)
+                    .setConversationTitle("$title · ${item.project}")
+                    .setGroupConversation(false)
+                    .addMessage(message, System.currentTimeMillis(), agent.person),
+            )
             .setContentIntent(openIntent(item.id))
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
@@ -210,7 +237,7 @@ class Notifier(private val context: Context) {
                 if (!showDetails) {
                     setPublicVersion(
                         NotificationCompat.Builder(context, channel)
-                            .setSmallIcon(R.drawable.ic_stat_nod)
+                            .setSmallIcon(brand.icon)
                             .setColor(color)
                             .setContentTitle(context.getString(publicTitleFor(item.kind), item.agent, item.project))
                             .setOnlyAlertOnce(true)
@@ -219,6 +246,52 @@ class Notifier(private val context: Context) {
                     )
                 }
             }
+    }
+
+    private class Conversation(val shortcutId: String, val person: Person)
+
+    /**
+     * The agent as a person with its mark as avatar, published as a long-lived
+     * shortcut: Android only treats a notification as a conversation (and shows
+     * the sender's avatar) when it references such a shortcut.
+     */
+    private fun conversationWith(agent: String, project: String, brand: AgentBrand): Conversation {
+        val slug = { text: String -> text.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_') }
+        // One conversation per agent and project, so the title says who asks where: "Claude Code · nod".
+        val id = "agent_${slug(agent)}__${slug(project)}"
+        val icon = IconCompat.createWithAdaptiveBitmap(avatar(brand))
+        val label = if (project.isBlank()) agent else "$agent · $project"
+        // Named like the conversation, so Android doesn't prefix every message with the sender.
+        // Not marked as a bot: Android doesn't treat bot messages as conversations.
+        val person = Person.Builder().setName(label).setKey(id).setIcon(icon).setImportant(true).build()
+        val shortcut = ShortcutInfoCompat.Builder(context, id)
+            .setShortLabel(label)
+            .setLongLived(true)
+            .setPerson(person)
+            .setIcon(icon)
+            .setIntent(Intent(context, MainActivity::class.java).setAction(Intent.ACTION_VIEW))
+            .build()
+        // Without the shortcut it is still a regular notification, just with the Nod icon.
+        runCatching { ShortcutManagerCompat.pushDynamicShortcut(context, shortcut) }
+            .onFailure { Log.w("NodNotifier", "Cannot publish the agent shortcut", it) }
+        return Conversation(id, person)
+    }
+
+    /** The agent's mark, white (or dark on light colours) on its brand colour, as an adaptive icon. */
+    private fun avatar(brand: AgentBrand): Bitmap {
+        val size = AVATAR_PX
+        val background = ContextCompat.getColor(context, brand.color)
+        val bitmap = createBitmap(size, size)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(background)
+        // Adaptive icons show the inner 72 of 108 dp; the mark takes about half of that circle.
+        val inset = (size * 0.31f).toInt()
+        ContextCompat.getDrawable(context, brand.icon)?.mutate()?.apply {
+            setTint(if (ColorUtils.calculateLuminance(background) > 0.5) Color.BLACK else Color.WHITE)
+            setBounds(inset, inset, size - inset, size - inset)
+            draw(canvas)
+        }
+        return bitmap
     }
 
     private fun post(id: String, builder: NotificationCompat.Builder) {
@@ -290,6 +363,7 @@ class Notifier(private val context: Context) {
 
     companion object {
         private const val NOTE_REQUEST_OFFSET = 7
+        private const val AVATAR_PX = 216
         const val CHANNEL_REQUESTS = "requests_v2"
         private val LEGACY_CHANNELS = listOf("requests")
         const val CHANNEL_COMPLETED = "completed"

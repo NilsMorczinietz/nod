@@ -6,7 +6,7 @@
   import Badge from '../components/Badge.svelte'
   import RequestCard from '../components/RequestCard.svelte'
   import { clockTime, dayLabel } from '../lib/format'
-  import { answerOf, statusOf } from '../lib/status'
+  import { answerOf, isOpenQuestion, statusOf } from '../lib/status'
 
   let { item, onclose }: { item: Item; onclose: () => void } = $props()
   const status = $derived(statusOf(item))
@@ -33,7 +33,12 @@
   {:else}
     <h2 class="h3">{item.title}</h2>
     <div><Badge label={status.label} variant={status.variant} /></div>
-    {#if item.body && item.body !== item.permission?.summary}<p class="body">{item.body}</p>{/if}
+    {#if isOpenQuestion(item) && item.body && item.body !== item.questions?.[0]?.question}
+      <!-- The whole message Claude ended with this question. -->
+      <div class="plan"><Markdown source={item.body} /></div>
+    {:else if item.body && item.body !== item.permission?.summary}<p class="body">
+        {item.body}
+      </p>{/if}
     {#if item.permission}<CodeBlock
         text={`${item.permission.tool === 'Bash' ? '$ ' : ''}${item.permission.detail ?? item.permission.summary}`}
       />{/if}

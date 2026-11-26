@@ -98,8 +98,9 @@ fun RequestCard(
             .clickable(onClick = onOpen),
     ) {
         Column(Modifier.padding(12.dp)) {
-            // A reply question leads with the question itself ("Shall I also update the docs?").
-            Text(reply?.question ?: item.title, style = NodType.heading, color = colors.foreground, maxLines = if (reply != null) 4 else 2, overflow = TextOverflow.Ellipsis)
+            // A reply question leads with the question itself ("Shall I also update the docs?"),
+            // shown whole: the CLI keeps it short and its end holds the decision.
+            Text(reply?.question ?: item.title, style = NodType.heading, color = colors.foreground, maxLines = if (reply != null) 8 else 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(6.dp))
             MetaLine(item.session.agentName, item.session.project, relativeTime(item.createdAt))
         }

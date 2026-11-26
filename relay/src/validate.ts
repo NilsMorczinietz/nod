@@ -29,9 +29,19 @@ const isObject = (value: unknown): value is Json =>
 const object = (value: unknown, field: string): Json =>
   isObject(value) ? value : fail(`${field} must be an object`)
 
+/**
+ * Over-long text loses its middle, not its end: questions and messages tend
+ * to put the decision last.
+ */
+export const clipMiddle = (value: string, max: number): string => {
+  if (value.length <= max) return value
+  const head = Math.floor((max - 1) / 3)
+  return `${value.slice(0, head)}…${value.slice(value.length - (max - 1 - head))}`
+}
+
 const string = (value: unknown, field: string, max: number): string => {
   if (typeof value !== 'string') return fail(`${field} must be a string`)
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value
+  return clipMiddle(value, max)
 }
 
 const optionalString = (value: unknown, field: string, max: number): string | undefined =>
@@ -49,7 +59,7 @@ const parseQuestion = (value: unknown, index: number): Question => {
     ? q.options.slice(0, 8)
     : fail('options must be an array')
   return {
-    question: string(q.question, 'question', 500),
+    question: string(q.question, 'question', 1000),
     header: string(q.header ?? '', 'header', 40),
     multiSelect: q.multiSelect === true,
     ...(q.allowText === true ? { allowText: true } : {}),

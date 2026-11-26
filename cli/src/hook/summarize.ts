@@ -10,6 +10,46 @@ export interface ToolSummary {
 const clip = (text: string, max: number): string =>
   text.length > max ? `${text.slice(0, max - 1)}…` : text
 
+/**
+ * Shortens prose in the middle, at word boundaries: the opening sets the scene
+ * and the end usually holds the decision, so both survive.
+ */
+export const clipMiddle = (text: string, max: number): string => {
+  if (text.length <= max) return text
+  const room = max - 3 // " … "
+  const headLength = Math.floor(room / 3)
+  let head = text.slice(0, headLength)
+  let tail = text.slice(text.length - (room - headLength))
+  const headCut = head.lastIndexOf(' ')
+  if (headCut > headLength / 2) head = head.slice(0, headCut)
+  const tailCut = tail.indexOf(' ')
+  if (tailCut >= 0 && tailCut < tail.length / 3) tail = tail.slice(tailCut + 1)
+  return `${head.trimEnd()} … ${tail.trimStart()}`
+}
+
+const fenceCount = (markdown: string): number => (markdown.match(/^\s*```/gm) ?? []).length
+
+/**
+ * The end of a Markdown message, at most `max` characters, cut at a paragraph
+ * boundary outside code fences and marked with a leading "…".
+ */
+export const markdownTail = (markdown: string, max: number): string => {
+  const text = markdown.trim()
+  if (text.length <= max) return text
+  let start = text.length - (max - 2)
+  // Move forward to the next paragraph that doesn't start inside a code block.
+  for (;;) {
+    const next = text.indexOf('\n\n', start)
+    if (next < 0) break
+    start = next + 2
+    if (fenceCount(text.slice(0, start)) % 2 === 0) return `…\n\n${text.slice(start)}`
+  }
+  // One huge paragraph or code block: cut at a word.
+  const tail = text.slice(text.length - (max - 2))
+  const cut = tail.indexOf(' ')
+  return `… ${cut >= 0 && cut < tail.length / 3 ? tail.slice(cut + 1) : tail}`
+}
+
 const firstLine = (text: string): string => text.split('\n', 1)[0] ?? ''
 
 const str = (value: unknown): string => (typeof value === 'string' ? value : '')
@@ -88,9 +128,9 @@ export const summarizeTool = (
   }
 }
 
-/** Light Markdown cleanup for notification bodies. */
+/** Light Markdown cleanup for notification bodies; long text loses its middle, not its end. */
 export const plainText = (markdown: string, max: number): string =>
-  clip(
+  clipMiddle(
     markdown
       .replace(/```[\s\S]*?```/g, '[code]')
       .replace(/`([^`]+)`/g, '$1')

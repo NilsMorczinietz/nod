@@ -28,6 +28,7 @@ import { normalizePairingCode, pairingCode, randomToken, secretsEqual, sha256Hex
 import { FcmClient, firebaseClientConfig, parseServiceAccount, type CachedAccessToken } from './fcm'
 import { HttpError, bearerToken, errorResponse, json, noContent, readJson } from './http'
 import {
+  clipMiddle,
   DEFAULT_TTL_SECONDS,
   parseNewItem,
   parsePresence,
@@ -103,9 +104,6 @@ const toDevice = (row: DeviceRow): Device => ({
   lastSeenAt: row.last_seen_at,
   hasPushToken: row.push_token !== null,
 })
-
-const truncate = (text: string, max: number): string =>
-  text.length > max ? `${text.slice(0, max - 1)}…` : text
 
 export class Hub extends DurableObject<Env> {
   private readonly sql: SqlStorage
@@ -640,8 +638,10 @@ export class Hub extends DurableObject<Env> {
       type: 'item',
       id: item.id,
       kind: item.kind,
-      title: truncate(item.title, 120),
-      body: truncate(item.body ?? item.permission?.summary ?? '', 600),
+      title: clipMiddle(item.title, 120),
+      // A single question leads with the question itself; its body may be the whole message.
+      // 700 characters keep the payload under FCM's 4 KB even in 4-byte UTF-8.
+      body: clipMiddle(question?.question ?? item.body ?? item.permission?.summary ?? '', 700),
       project: item.session.project,
       ...(item.session.agent ? { agent: item.session.agent } : {}),
       expiresAt: String(item.expiresAt),
