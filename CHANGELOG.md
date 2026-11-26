@@ -6,6 +6,15 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-11-26
+
+### Fixed
+
+- The reply field in the desktop island takes keyboard input again. Clicking into it now makes
+  the island the active window; before, typing kept going to the terminal.
+- Phone notifications no longer repeat the agent: below "Claude Code · project" they read
+  "Finished: …" instead of "Claude Code finished: …" (also "Failed", "Needs you").
+
 ## [0.2.3] - 2026-11-26
 
 ### Changed
