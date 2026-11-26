@@ -212,8 +212,13 @@ class Notifier(private val context: Context) {
         // A conversation with the agent: Android then shows the agent's mark (Claude, Cursor, …)
         // where it would show the Nod app icon, and Nod only as a small badge.
         val agent = conversationWith(item.agent, item.project, brand)
-        // The conversation title only names agent and project, so updates say what happened.
-        val message = if (item.kind.isInteractive) expanded else "$title: $expanded"
+        // The conversation title only names agent and project, so updates say what happened,
+        // without repeating the agent: "Finished: …", not "Claude Code finished: …".
+        val message = if (item.kind.isInteractive) {
+            expanded
+        } else {
+            "${context.getString(if (item.isReply) R.string.event_waiting else eventFor(item.kind))}: $expanded"
+        }
         return NotificationCompat.Builder(context, channel)
             .setSmallIcon(brand.icon)
             .setColor(color)
@@ -379,6 +384,13 @@ class Notifier(private val context: Context) {
             ItemKind.Completed -> R.string.notif_completed
             ItemKind.Failed -> R.string.notif_failed
             ItemKind.Attention -> R.string.notif_attention
+        }
+
+        /** The event without the agent, for the conversation line under "<Agent> · <project>". */
+        private fun eventFor(kind: ItemKind): Int = when (kind) {
+            ItemKind.Completed -> R.string.event_finished
+            ItemKind.Failed -> R.string.event_failed
+            else -> R.string.event_needs_you
         }
 
         private fun publicTitleFor(kind: ItemKind): Int = when (kind) {

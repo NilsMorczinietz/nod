@@ -123,6 +123,10 @@
     <string name="notif_completed">%1$s finished</string>
     <string name="notif_failed">%1$s failed</string>
     <string name="notif_attention">%1$s needs you</string>
+    <string name="event_finished">Finished</string>
+    <string name="event_failed">Failed</string>
+    <string name="event_needs_you">Needs you</string>
+    <string name="event_waiting">Waiting for you</string>
     <string name="stat_approved_today">approved today</string>
     <string name="stat_denied_today">denied today</string>
     <string name="time_now">now</string>
