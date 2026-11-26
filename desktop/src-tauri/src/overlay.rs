@@ -164,10 +164,12 @@ mod platform {
 
     use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
     use windows::Win32::Foundation::HWND;
+    use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
     use windows::Win32::UI::WindowsAndMessaging::{
-        GWL_EXSTYLE, GetForegroundWindow, GetWindowLongPtrW, HWND_TOPMOST, IsWindowVisible,
-        SET_WINDOW_POS_FLAGS, SW_HIDE, SWP_NOACTIVATE, SWP_SHOWWINDOW, SetForegroundWindow,
-        SetWindowLongPtrW, SetWindowPos, ShowWindow, WS_EX_NOACTIVATE,
+        GWL_EXSTYLE, GetForegroundWindow, GetWindowLongPtrW, GetWindowThreadProcessId,
+        HWND_TOPMOST, IsWindowVisible, SET_WINDOW_POS_FLAGS, SW_HIDE, SWP_NOACTIVATE,
+        SWP_SHOWWINDOW, SetForegroundWindow, SetWindowLongPtrW, SetWindowPos, ShowWindow,
+        WS_EX_NOACTIVATE,
     };
 
     use crate::error::Result;
@@ -192,8 +194,29 @@ mod platform {
         if previous != own && !previous.is_invalid() {
             *PREVIOUS.lock().expect("focus lock") = Some(previous.0 as isize);
         }
-        // Allowed: the click that triggers this was the last input event.
-        window.set_focus()?;
+        // Not `window.set_focus()`: tao only activates windows it believes are
+        // visible, and the overlay is shown with SetWindowPos behind its back, so
+        // that call silently did nothing and keystrokes stayed in the terminal.
+        // The click reached WebView2's input window (another process), so Windows
+        // may still refuse SetForegroundWindow; sharing the foreground thread's
+        // input state for the call lifts that restriction.
+        // SAFETY: plain Win32 calls on valid (or harmlessly stale) handles; the
+        // command runs on the main thread, which owns the overlay window.
+        unsafe {
+            if !SetForegroundWindow(own).as_bool() {
+                let current = GetCurrentThreadId();
+                let foreground = GetWindowThreadProcessId(previous, None);
+                let attached = foreground != 0
+                    && foreground != current
+                    && AttachThreadInput(current, foreground, true).as_bool();
+                let _ = SetForegroundWindow(own);
+                if attached {
+                    let _ = AttachThreadInput(current, foreground, false);
+                }
+            }
+        }
+        // Moves keyboard focus into the page itself (WebView2 controller).
+        window.as_ref().set_focus()?;
         Ok(())
     }
 
