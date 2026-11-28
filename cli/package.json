@@ -19,7 +19,7 @@
     "@nod/protocol": "*"
   },
   "devDependencies": {
-    "@types/node": "^26.6.6",
+    "@types/node": "^26.6.7",
     "esbuild": "^0.28.2",
     "qrcode": "^1.5.4"
   }
